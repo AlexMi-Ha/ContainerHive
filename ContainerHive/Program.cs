@@ -19,6 +19,17 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+app.Use(async (context, next) => {
+    var token = context.Request.Headers["x-api-public-token"].ToString();
+    var config = context.RequestServices.GetRequiredService<IConfiguration>();
+    if(!config["ApiPublicToken"]!.Equals(token)) {
+        context.Response.StatusCode = 401;
+        await context.Response.WriteAsync("You are not authorized to access this resource.");
+        return;
+    }
+    await next(context);
+});
+
 app.MapControllers();
 
 app.Run();

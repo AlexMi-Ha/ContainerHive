@@ -17,7 +17,7 @@ namespace ContainerHive.Core.Models {
 
         [Required]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public string ApiToken { get; set; } = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+        public string ApiToken { get; private set; } = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
 
         [Required]
         public bool CustomNetwork { get; set; } = false;

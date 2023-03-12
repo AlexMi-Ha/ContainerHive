@@ -17,7 +17,7 @@ namespace ContainerHive.Core.Common.Interfaces {
 
 
         public Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment);
-        public Task<bool> RunImageAsync(ImageBuild image, Deployment deployment);
+        public Task<Result<Container>> RunImageAsync(ImageBuild image, Deployment deployment);
 
         public Task<bool> KillRunningContainersByProject(string projId);
 

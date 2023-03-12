@@ -29,6 +29,8 @@ namespace ContainerHive.Core.Models {
         public Project? Project { get; set; }
 
 
+        public IEnumerable<EnvironmentVar>? EnvironmentVars { get; set; }
+        public IEnumerable<Mount>? Mounts { get; set; }
 
     }
 }

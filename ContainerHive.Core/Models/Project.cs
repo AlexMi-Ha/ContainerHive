@@ -28,6 +28,8 @@ namespace ContainerHive.Core.Models {
         public Repo? Repo { get; set; }
 
 
+        public IEnumerable<Deployment>? Deployments { get; set; }
+
         public string RegenerateToken() {
             ApiToken = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
             return ApiToken;

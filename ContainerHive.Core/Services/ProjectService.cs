@@ -4,7 +4,6 @@ using ContainerHive.Core.Common.Interfaces;
 using ContainerHive.Core.Datastore;
 using ContainerHive.Core.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Net.Http.Headers;
 
 namespace ContainerHive.Core.Services {
     internal class ProjectService : IProjectService {
@@ -45,17 +44,17 @@ namespace ContainerHive.Core.Services {
             return await _dbContext.Projects.ToListAsync();
         }
 
-        public async Task<Result<bool>> IsOnCustomNetwork(string id) {
+        public async Task<Result<bool>> IsOnCustomNetworkAsync(string id) {
             var proj = await GetProjectAsync(id);
             return proj.Map(e => e.CustomNetwork);
         }
 
-        public async Task<Result<bool>> IsWebhookActive(string id) {
+        public async Task<Result<bool>> IsWebhookActiveAsync(string id) {
             var proj = await GetProjectAsync(id);
             return proj.Map(e => e.WebhookActive);
         }
 
-        public async Task<Result<string>> RegenerateToken(string id) {
+        public async Task<Result<string>> RegenerateTokenAsync(string id) {
             var proj = await GetProjectAsync(id);
             if(proj.IsSuccess && !proj.Value.WebhookActive) {
                 return new ArgumentException($"The specified Project with id {id} has Webhooks disabled. Enable it to regenerate your Token!");            
@@ -70,7 +69,7 @@ namespace ContainerHive.Core.Services {
             return proj.Map(e => e.ApiToken);
         }
 
-        public async Task<Result<bool>> SetOnCustomNetwork(string id, bool enabled) {
+        public async Task<Result<bool>> SetOnCustomNetworkAsync(string id, bool enabled) {
             var proj = await GetProjectAsync(id);
             if (proj.IsSuccess) {
                 proj.Value.CustomNetwork = enabled;
@@ -82,7 +81,7 @@ namespace ContainerHive.Core.Services {
             return proj.Map(e => e.CustomNetwork);
         }
 
-        public async Task<Result<string>> SetRepoUrl(string id, string repoUrl) {
+        public async Task<Result<string>> SetRepoUrlAsync(string id, string repoUrl) {
             var proj = await _dbContext.Projects
                 .Include(e => e.Repo)
                 .Where(e => e.ProjectId.Equals(id))
@@ -104,7 +103,7 @@ namespace ContainerHive.Core.Services {
             return proj.Repo.Url;
         }
 
-        public async Task<Result<bool>> SetWebhookActive(string id, bool active) {
+        public async Task<Result<bool>> SetWebhookActiveAsync(string id, bool active) {
             var proj = await GetProjectAsync(id);
             if (proj.IsSuccess) {
                 proj.Value.WebhookActive = active;
@@ -114,6 +113,14 @@ namespace ContainerHive.Core.Services {
                 }
             }
             return proj.Map(e => e.WebhookActive);
+        }
+
+
+        public Task<Result<bool>> DeployAllAsync(string id) {
+            throw new NotImplementedException();
+        }
+        public Task<Result<bool>> KillAllContainersAsync(string id) {
+            throw new NotImplementedException();
         }
     }
 }

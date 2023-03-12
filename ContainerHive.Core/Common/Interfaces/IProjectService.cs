@@ -11,15 +11,19 @@ namespace ContainerHive.Core.Common.Interfaces {
         public Task<Result<bool>> DeleteProjectAsync(string id);
 
         // Webhook
-        public Task<Result<bool>> IsWebhookActive(string id);
-        public Task<Result<bool>> SetWebhookActive(string id, bool active);
-        public Task<Result<string>> RegenerateToken(string id);
+        public Task<Result<bool>> IsWebhookActiveAsync(string id);
+        public Task<Result<bool>> SetWebhookActiveAsync(string id, bool active);
+        public Task<Result<string>> RegenerateTokenAsync(string id);
 
         // Network
-        public Task<Result<bool>> IsOnCustomNetwork(string id);
-        public Task<Result<bool>> SetOnCustomNetwork(string id, bool enabled);
+        public Task<Result<bool>> IsOnCustomNetworkAsync(string id);
+        public Task<Result<bool>> SetOnCustomNetworkAsync(string id, bool enabled);
 
         // Repo
-        public Task<Result<string>> SetRepoUrl(string id, string repoUrl);
+        public Task<Result<string>> SetRepoUrlAsync(string id, string repoUrl);
+
+        // Deployment
+        public Task<Result<bool>> DeployAllAsync(string id);
+        public Task<Result<bool>> KillAllContainersAsync(string id);
     }
 }

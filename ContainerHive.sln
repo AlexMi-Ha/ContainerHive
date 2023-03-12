@@ -5,6 +5,8 @@ VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ContainerHive", "ContainerHive\ContainerHive.csproj", "{49424B78-BFE5-4880-96B9-30D7A2FB5904}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ContainerHive.Core", "ContainerHive.Core\ContainerHive.Core.csproj", "{EE5A07B8-259F-471F-AC73-326638B32C9D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{49424B78-BFE5-4880-96B9-30D7A2FB5904}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49424B78-BFE5-4880-96B9-30D7A2FB5904}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{49424B78-BFE5-4880-96B9-30D7A2FB5904}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE5A07B8-259F-471F-AC73-326638B32C9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE5A07B8-259F-471F-AC73-326638B32C9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE5A07B8-259F-471F-AC73-326638B32C9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE5A07B8-259F-471F-AC73-326638B32C9D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

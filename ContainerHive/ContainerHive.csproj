@@ -15,4 +15,8 @@
     <Folder Include="Controllers\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ContainerHive.Core\ContainerHive.Core.csproj" />
+  </ItemGroup>
+
 </Project>

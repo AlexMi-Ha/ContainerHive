@@ -9,7 +9,7 @@ namespace ContainerHive.Core.Common.Interfaces {
         public Task<IEnumerable<Container>> GetAllContainersForProjectAsync(string projId);
         public Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId);
 
-        public Task<string> GetContainerLogsAsync(string containerId);
+        public Task<List<ContainerLogEntry>> GetContainerLogsAsync(string containerId);
         public Task<string> GetImageLogsAsync(string imageId);
 
         public Task<bool> PruneProcessesAsync(string projectId);

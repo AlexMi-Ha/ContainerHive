@@ -12,5 +12,6 @@ namespace ContainerHive.Core.Models {
         [DataType(DataType.Url)]
         [MaxLength(512)]
         public required string Url { get; set; }
+
     }
 }

@@ -6,7 +6,9 @@ using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Newtonsoft.Json.Serialization;
 using System.Buffers;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
 namespace ContainerHive.Core.Services {
@@ -14,15 +16,39 @@ namespace ContainerHive.Core.Services {
 
         private readonly IDockerClient _dockerClient;
         private readonly string _imagesPath;
-        private const string _imageLogsRelPath = "logs";
+
+        private const string _logsExtension = ".logs";
+        private const string _metaExtension = ".meta";
+
+        private readonly string _repoPath;
 
         public DockerService(IDockerClient dockerClient, IConfiguration config) {
             _dockerClient = dockerClient;
             _imagesPath = config["ImagePath"]!;
+            _repoPath = config["RepoPath"]!;
         }
 
-        public Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment, CancellationToken cancelToken) {
-            throw new NotImplementedException();
+        public async Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment, CancellationToken cancelToken) {
+            var config = new ImageBuildParameters {
+                Dockerfile = Path.Combine(_repoPath, deployment.ProjectId ,deployment.DockerPath),
+                Tags = new List<string> { $"project={deployment.ProjectId}", $"deployment={deployment.DeploymentId}" },
+                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId }, { "deployment", deployment.DeploymentId } }  
+            };
+
+            using(var logStream = new StreamWriter(File.Open(Path.Combine(_imagesPath, deployment.DeploymentId, _logsExtension), FileMode.Create, FileAccess.Write)))
+            using(var dockerFileStream = File.OpenRead(Path.Combine(_repoPath, deployment.ProjectId, deployment.DockerPath))) {
+                try {
+                    await _dockerClient.Images.BuildImageFromDockerfileAsync(
+                        config, dockerFileStream, null, null,
+                        new Progress<JSONMessage>(msg => {
+                            logStream.WriteLine($"[{DateTime.Now}] {msg.Stream}");
+                        }), cancelToken);
+                }catch(DockerApiException ex) {
+                    logStream.WriteLine($"[{DateTime.Now}] Exited with Code {ex.StatusCode}\nError Message: {ex.Message}");
+                    return ex;
+                }
+            }
+
         }
 
         public async Task<IEnumerable<ContainerListResponse>> GetAllContainersForProjectAsync(string projId, CancellationToken cancelToken) {

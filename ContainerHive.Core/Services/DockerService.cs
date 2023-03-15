@@ -4,6 +4,7 @@ using ContainerHive.Core.Models;
 using ContainerHive.Core.Models.Docker;
 using Docker.DotNet;
 using Docker.DotNet.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Buffers;
 using System.Text;
@@ -12,26 +13,34 @@ namespace ContainerHive.Core.Services {
     internal class DockerService : IDockerService {
 
         private readonly IDockerClient _dockerClient;
+        private readonly string _imagesPath;
+        private const string _imageLogsRelPath = "logs";
 
-        public DockerService(IDockerClient dockerClient) {
+        public DockerService(IDockerClient dockerClient, IConfiguration config) {
             _dockerClient = dockerClient;
+            _imagesPath = config["ImagePath"]!;
         }
 
-        public Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment) {
+        public Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment, CancellationToken cancelToken) {
             throw new NotImplementedException();
         }
 
-        public Task<IEnumerable<Container>> GetAllContainersForProjectAsync(string projId) {
-            throw new NotImplementedException();
+        public async Task<IEnumerable<ContainerListResponse>> GetAllContainersForProjectAsync(string projId, CancellationToken cancelToken) {
+            var config = new ContainersListParameters {
+                All = true,
+                Filters = new Dictionary<string, IDictionary<string, bool>> {
+                    {"label", new Dictionary<string ,bool> { { $"project={projId}", true } } }
+                }
+            };
+            return await _dockerClient.Containers.ListContainersAsync(config, cancelToken);
         }
 
-        public Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId) {
-            throw new NotImplementedException();
+        public async Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId, CancellationToken cancelToken) {
+            throw new NotImplementedException(); //Custom implementation based on filesystem metafiles -> Failed images are not stored in docker
         }
 
-        public async Task<List<ContainerLogEntry>> GetContainerLogsAsync(string containerId) {
+        public async Task<List<ContainerLogEntry>> GetContainerLogsAsync(string containerId, CancellationToken cancelToken) {
             List<ContainerLogEntry> logs = new();
-            CancellationToken cancelToken = new();
             
             var config = new ContainerLogsParameters {
                 Timestamps = true,
@@ -63,28 +72,45 @@ namespace ContainerHive.Core.Services {
             return logs;
         }
 
-        public Task<string> GetImageLogsAsync(string imageId) {
+        public Task<string> GetImageLogsAsync(string imageId, CancellationToken cancelToken) {
             throw new NotImplementedException();
         }
 
-        public Task<bool> KillRunningContainersByProject(string projId) {
-            throw new NotImplementedException();
+        public async Task<bool> StopRunningContainersByProject(string projId, CancellationToken cancelToken) {
+            var containers = await GetAllContainersForProjectAsync(projId, cancelToken);
+            var config = new ContainerStopParameters {
+                WaitBeforeKillSeconds = 5
+            };
+            bool succ = true;
+            foreach(var container in containers) {
+                succ = succ && await _dockerClient.Containers.StopContainerAsync(container.ID, config, cancelToken);
+            }
+            return succ;
         }
 
-        public Task<bool> PruneImagesAsync(string projectId) {
-            throw new NotImplementedException();
+        public async Task<bool> PruneImagesAsync(string projId, CancellationToken cancelToken) {
+            var config = new ImagesPruneParameters {
+                Filters = new Dictionary<string, IDictionary<string, bool>> {
+                    { "label", new Dictionary<string, bool> { { $"project={projId}", true } } },
+                    { "dangling", new Dictionary<string, bool> { { "true", true} } }
+                }
+            };
+            var res = await _dockerClient.Images.PruneImagesAsync(config, cancelToken);
+            return res.ImagesDeleted.Count > 0;
         }
 
-        public Task<bool> PruneProcessesAsync(string projectId) {
-            throw new NotImplementedException();
+        public async Task<bool> PruneProcessesAsync(string projId, CancellationToken cancelToken) {
+            var config = new ContainersPruneParameters {
+                Filters = new Dictionary<string, IDictionary<string, bool>> {
+                    {"label", new Dictionary<string ,bool> { { $"project={projId}", true } } }
+                }
+            };
+            var res = await _dockerClient.Containers.PruneContainersAsync(config, cancelToken);
+            return res.ContainersDeleted.Count > 0;
         }
 
-        public Task<Result<Container>> RunImageAsync(ImageBuild image, Deployment deployment) {
+        public Task<Result<Container>> RunImageAsync(ImageBuild image, Deployment deployment, CancellationToken cancelToken) {
             throw new NotImplementedException();
-        }
-
-        private static Stream MuxStreamToSingleStream(MultiplexedStream s) {
-            
         }
     }
 }

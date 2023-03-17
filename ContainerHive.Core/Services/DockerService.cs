@@ -40,21 +40,26 @@ namespace ContainerHive.Core.Services {
             _dbContext.ImageBuilds.Update(image);
             await _dbContext.SaveChangesAsync(cancelToken);
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
-            using (var dockerFileStream = File.OpenRead(Path.Combine(_repoPath, deployment.ProjectId, deployment.DockerPath))) {
-                try {
+            try {
+                using (var dockerFileStream = File.OpenRead(Path.Combine(_repoPath, deployment.ProjectId, deployment.DockerPath))) {
                     await _dockerClient.Images.BuildImageFromDockerfileAsync(
                         config, dockerFileStream, null, null,
                         new Progress<JSONMessage>(msg => {
-                            image.Logs += $"\n[{DateTime.Now}] {msg.Stream}";
+                            image.Logs += $"[{DateTime.Now}] {msg.Stream}\n";
                         }), cancelToken);
-                    if(cancelToken.IsCancellationRequested) return new OperationCanceledException();
-                } catch (DockerApiException ex) {
-                    image.Logs += $"\n[{DateTime.Now}] Exited with Code {ex.StatusCode}\nError Message: {ex.Message}";
-                    image.BuidStatus = Status.FAILED;
-                    _dbContext.ImageBuilds.Update(image);
-                    await _dbContext.SaveChangesAsync(cancelToken);
-                    return ex;
+                    if (cancelToken.IsCancellationRequested) return new OperationCanceledException(); 
                 }
+            } catch (Exception ex) {
+                if (ex is not DockerApiException or IOException)
+                    throw;
+                if(ex is IOException)
+                    image.Logs += $"[{DateTime.Now}] Dockerfile could not be found at ${Path.Combine(_repoPath, deployment.ProjectId, deployment.DockerPath)}\n";
+                else
+                    image.Logs += $"[{DateTime.Now}] Exited with an Error!\nError Message: {ex.Message}\n";
+                image.BuidStatus = Status.FAILED;
+                _dbContext.ImageBuilds.Update(image);
+                await _dbContext.SaveChangesAsync(cancelToken);
+                return ex;
             }
 
             var listConfig = new ImagesListParameters {
@@ -63,7 +68,12 @@ namespace ContainerHive.Core.Services {
                     {"label", new Dictionary<string ,bool> { { $"deployment={deployment.DeploymentId}", true } } }
                 }
             };
-            var res = await _dockerClient.Images.ListImagesAsync(listConfig, cancelToken);
+            IList<ImagesListResponse> res;
+            try {
+                res = await _dockerClient.Images.ListImagesAsync(listConfig, cancelToken);
+            }catch (DockerApiException ex) {
+                return ex;
+            }
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
             if (res.Count != 1) {
                 image.BuidStatus = Status.FAILED;
@@ -79,14 +89,19 @@ namespace ContainerHive.Core.Services {
             return cancelToken.IsCancellationRequested ? new OperationCanceledException() : image;
         }
 
-        public async Task<IEnumerable<ContainerListResponse>> GetAllContainersForProjectAsync(string projId, CancellationToken cancelToken) {
+        public async Task<Result<IEnumerable<ContainerListResponse>>> GetAllContainersForProjectAsync(string projId, CancellationToken cancelToken) {
             var config = new ContainersListParameters {
                 All = true,
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
                     {"label", new Dictionary<string ,bool> { { $"project={projId}", true } } }
                 }
             };
-            return await _dockerClient.Containers.ListContainersAsync(config, cancelToken);
+            try {
+                var res = await _dockerClient.Containers.ListContainersAsync(config, cancelToken);
+                return new Result<IEnumerable<ContainerListResponse>>(res);
+            }catch(DockerApiException ex) {
+                return ex;
+            }
         }
 
         public async Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId) {
@@ -106,9 +121,9 @@ namespace ContainerHive.Core.Services {
                 ShowStdout = true
             };
 
-            var muxStream = await _dockerClient.Containers.GetContainerLogsAsync(containerId, false, config);
             var buffer = ArrayPool<byte>.Shared.Rent(81920);
             try {
+                var muxStream = await _dockerClient.Containers.GetContainerLogsAsync(containerId, false, config);
                 using (MemoryStream m = new())
                 using (StreamReader reader = new(m)) {
                     while (!cancelToken.IsCancellationRequested) {
@@ -123,6 +138,8 @@ namespace ContainerHive.Core.Services {
 
                     }
                 }
+            }catch(DockerApiException ex) {
+                return Enumerable.Empty<ContainerLogEntry>().ToList();
             }finally {
                 ArrayPool<byte>.Shared.Return(buffer);
             }
@@ -137,17 +154,23 @@ namespace ContainerHive.Core.Services {
         }
 
         public async Task<bool> StopRunningContainersByProject(string projId, CancellationToken cancelToken) {
-            var containers = await GetAllContainersForProjectAsync(projId, cancelToken);
+            var containersResult = (await GetAllContainersForProjectAsync(projId, cancelToken));
+            if (containersResult.IsFaulted)
+                return false;
             if (cancelToken.IsCancellationRequested)
                 return false;
             var config = new ContainerStopParameters {
                 WaitBeforeKillSeconds = 5
             };
             bool succ = true;
-            foreach(var container in containers) {
-                succ = succ && await _dockerClient.Containers.StopContainerAsync(container.ID, config, cancelToken);
-                if (cancelToken.IsCancellationRequested)
-                    return false;
+            try {
+                foreach (var container in containersResult.Value) {
+                    succ = succ && await _dockerClient.Containers.StopContainerAsync(container.ID, config, cancelToken);
+                    if (cancelToken.IsCancellationRequested)
+                        return false;
+                }
+            }catch(DockerApiException) {
+                return false;
             }
             return succ;
         }
@@ -159,7 +182,12 @@ namespace ContainerHive.Core.Services {
                     { "dangling", new Dictionary<string, bool> { { "true", true} } }
                 }
             };
-            var dockerRes = await _dockerClient.Images.PruneImagesAsync(config, cancelToken);
+            ImagesPruneResponse dockerRes;
+            try {
+                dockerRes = await _dockerClient.Images.PruneImagesAsync(config, cancelToken);
+            }catch(DockerApiException) { 
+                return false; 
+            }
             if (cancelToken.IsCancellationRequested) return false;
             var dbRes = await _dbContext.ImageBuilds.Include(e => e.Deployment).Where(e => e.Deployment.ProjectId.Equals(projId)).ExecuteDeleteAsync();
             await _dbContext.SaveChangesAsync();
@@ -172,7 +200,12 @@ namespace ContainerHive.Core.Services {
                     {"label", new Dictionary<string ,bool> { { $"project={projId}", true } } }
                 }
             };
-            var res = await _dockerClient.Containers.PruneContainersAsync(config, cancelToken);
+            ContainersPruneResponse res;
+            try {
+                res = await _dockerClient.Containers.PruneContainersAsync(config, cancelToken);
+            }catch(DockerApiException) { 
+                return false; 
+            }
             return res != null && res.ContainersDeleted.Count > 0;
         }
 

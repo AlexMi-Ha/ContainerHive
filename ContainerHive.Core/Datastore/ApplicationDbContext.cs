@@ -1,5 +1,6 @@
 ﻿
 using ContainerHive.Core.Models;
+using ContainerHive.Core.Models.Docker;
 using Microsoft.EntityFrameworkCore;
 
 namespace ContainerHive.Core.Datastore {
@@ -11,6 +12,7 @@ namespace ContainerHive.Core.Datastore {
         public DbSet<EnvironmentVar> EnvironmentVars { get; set; }
         public DbSet<Mount> Mounts { get; set; }
 
+        public DbSet<ImageBuild> ImageBuilds { get; set; }     
 
         public ApplicationDbContext(DbContextOptions options) : base(options) {
 

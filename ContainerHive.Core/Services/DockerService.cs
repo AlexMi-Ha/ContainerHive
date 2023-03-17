@@ -1,31 +1,28 @@
 ﻿using ContainerHive.Core.Common.Helper.Result;
 using ContainerHive.Core.Common.Interfaces;
+using ContainerHive.Core.Datastore;
 using ContainerHive.Core.Models;
 using ContainerHive.Core.Models.Docker;
 using Docker.DotNet;
 using Docker.DotNet.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging.Abstractions;
-using Newtonsoft.Json.Serialization;
 using System.Buffers;
-using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
 namespace ContainerHive.Core.Services {
     internal class DockerService : IDockerService {
 
         private readonly IDockerClient _dockerClient;
-        private readonly string _imagesPath;
-
-        private const string _logsExtension = ".logs";
-        private const string _metaExtension = ".meta";
 
         private readonly string _repoPath;
 
-        public DockerService(IDockerClient dockerClient, IConfiguration config) {
+        private readonly ApplicationDbContext _dbContext;
+
+        public DockerService(IDockerClient dockerClient, IConfiguration config, ApplicationDbContext dbContext) {
             _dockerClient = dockerClient;
-            _imagesPath = config["ImagePath"]!;
             _repoPath = config["RepoPath"]!;
+            _dbContext = dbContext;
         }
 
         public async Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment, CancellationToken cancelToken) {
@@ -34,21 +31,52 @@ namespace ContainerHive.Core.Services {
                 Tags = new List<string> { $"project={deployment.ProjectId}", $"deployment={deployment.DeploymentId}" },
                 Labels = new Dictionary<string, string> { { "project", deployment.ProjectId }, { "deployment", deployment.DeploymentId } }  
             };
-
-            using(var logStream = new StreamWriter(File.Open(Path.Combine(_imagesPath, deployment.DeploymentId, _logsExtension), FileMode.Create, FileAccess.Write)))
-            using(var dockerFileStream = File.OpenRead(Path.Combine(_repoPath, deployment.ProjectId, deployment.DockerPath))) {
+            var image = new ImageBuild {
+                Deployment = deployment,
+                DeploymentId = deployment.DeploymentId,
+                BuidStatus = Status.BUILDING,
+                Created = DateTime.Now
+            };
+            _dbContext.ImageBuilds.Update(image);
+            await _dbContext.SaveChangesAsync(cancelToken);
+            if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
+            using (var dockerFileStream = File.OpenRead(Path.Combine(_repoPath, deployment.ProjectId, deployment.DockerPath))) {
                 try {
                     await _dockerClient.Images.BuildImageFromDockerfileAsync(
                         config, dockerFileStream, null, null,
                         new Progress<JSONMessage>(msg => {
-                            logStream.WriteLine($"[{DateTime.Now}] {msg.Stream}");
+                            image.Logs += $"\n[{DateTime.Now}] {msg.Stream}";
                         }), cancelToken);
-                }catch(DockerApiException ex) {
-                    logStream.WriteLine($"[{DateTime.Now}] Exited with Code {ex.StatusCode}\nError Message: {ex.Message}");
+                    if(cancelToken.IsCancellationRequested) return new OperationCanceledException();
+                } catch (DockerApiException ex) {
+                    image.Logs += $"\n[{DateTime.Now}] Exited with Code {ex.StatusCode}\nError Message: {ex.Message}";
+                    image.BuidStatus = Status.FAILED;
+                    _dbContext.ImageBuilds.Update(image);
+                    await _dbContext.SaveChangesAsync(cancelToken);
                     return ex;
                 }
             }
 
+            var listConfig = new ImagesListParameters {
+                All = true,
+                Filters = new Dictionary<string, IDictionary<string, bool>> {
+                    {"label", new Dictionary<string ,bool> { { $"deployment={deployment.DeploymentId}", true } } }
+                }
+            };
+            var res = await _dockerClient.Images.ListImagesAsync(listConfig, cancelToken);
+            if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
+            if (res.Count != 1) {
+                image.BuidStatus = Status.FAILED;
+                await _dbContext.SaveChangesAsync();
+                return new DockerImageNotFoundException(System.Net.HttpStatusCode.BadRequest, "Found multiple or no Images after build. Did the Build fail or was the old image not pruned?");
+            }
+
+            image.BuidStatus = Status.DONE;
+            image.ImageId = res.First().ID;
+            image.Created = res.First().Created;
+            _dbContext.ImageBuilds.Update(image);
+            await _dbContext.SaveChangesAsync(cancelToken);
+            return cancelToken.IsCancellationRequested ? new OperationCanceledException() : image;
         }
 
         public async Task<IEnumerable<ContainerListResponse>> GetAllContainersForProjectAsync(string projId, CancellationToken cancelToken) {
@@ -62,7 +90,10 @@ namespace ContainerHive.Core.Services {
         }
 
         public async Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId, CancellationToken cancelToken) {
-            throw new NotImplementedException(); //Custom implementation based on filesystem metafiles -> Failed images are not stored in docker
+            return await _dbContext.ImageBuilds
+                .Include(e => e.Deployment)
+                .Where(e => e.Deployment.ProjectId.Equals(projId))
+                .ToListAsync();
         }
 
         public async Task<List<ContainerLogEntry>> GetContainerLogsAsync(string containerId, CancellationToken cancelToken) {
@@ -98,8 +129,11 @@ namespace ContainerHive.Core.Services {
             return logs;
         }
 
-        public Task<string> GetImageLogsAsync(string imageId, CancellationToken cancelToken) {
-            throw new NotImplementedException();
+        public async Task<string?> GetImageLogsAsync(string imageId) {
+            return await _dbContext.ImageBuilds
+                .Where(e => e.ImageId.Equals(imageId))
+                .Select(e => e.Logs)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<bool> StopRunningContainersByProject(string projId, CancellationToken cancelToken) {
@@ -121,8 +155,11 @@ namespace ContainerHive.Core.Services {
                     { "dangling", new Dictionary<string, bool> { { "true", true} } }
                 }
             };
-            var res = await _dockerClient.Images.PruneImagesAsync(config, cancelToken);
-            return res.ImagesDeleted.Count > 0;
+            var dockerRes = await _dockerClient.Images.PruneImagesAsync(config, cancelToken);
+            if (cancelToken.IsCancellationRequested) return false;
+            var dbRes = await _dbContext.ImageBuilds.Include(e => e.Deployment).Where(e => e.Deployment.ProjectId.Equals(projId)).ExecuteDeleteAsync();
+            await _dbContext.SaveChangesAsync();
+            return dockerRes != null && dockerRes.ImagesDeleted.Count > 0 && dbRes > 0;
         }
 
         public async Task<bool> PruneProcessesAsync(string projId, CancellationToken cancelToken) {

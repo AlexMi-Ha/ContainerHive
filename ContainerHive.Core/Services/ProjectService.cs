@@ -3,15 +3,21 @@ using ContainerHive.Core.Common.Helper.Result;
 using ContainerHive.Core.Common.Interfaces;
 using ContainerHive.Core.Datastore;
 using ContainerHive.Core.Models;
+using ContainerHive.Core.Models.Docker;
 using Microsoft.EntityFrameworkCore;
 
 namespace ContainerHive.Core.Services {
     internal class ProjectService : IProjectService {
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly IDeploymentService _deploymentService;
+        private readonly IDockerService _dockerService;
+        private readonly IGitService _gitService;
 
-        public ProjectService(ApplicationDbContext dbContext) {
+        public ProjectService(ApplicationDbContext dbContext, IDeploymentService deploymentService, IDockerService dockerService) {
             _dbContext = dbContext;
+            _deploymentService = deploymentService;
+            _dockerService = dockerService;
         }
 
         public async Task<Result<string>> AddProjectAsync(Project project) {
@@ -29,7 +35,8 @@ namespace ContainerHive.Core.Services {
             _dbContext.Projects.Remove(proj);
             if (await _dbContext.SaveChangesAsync() <= 0)
                 return new ApplicationException("Failed to delete Project!");
-
+            // TODO: Delete local git repository
+            // TODO: stop containers and prune resources
             return true;
         }
 
@@ -116,8 +123,52 @@ namespace ContainerHive.Core.Services {
         }
 
 
-        public Task<Result<bool>> DeployAllAsync(string id) {
-            throw new NotImplementedException();
+        public async Task<Result<bool>> DeployAllAsync(string id, CancellationToken cancelToken) {
+            var killResult = await KillAllContainersAsync(id);
+            if(killResult.IsFaulted || !killResult.Value) {
+                return new DeploymentFailedException("Failed stopping and killing old Deployments", killResult);
+            }
+
+            var projectResult = await GetProjectAsync(id);
+            if (projectResult.IsFaulted || projectResult.Value == null)
+                return new RecordNotFoundException("Did not find the project with the id " + id, projectResult);
+
+            var gitResult = await _gitService.CloneOrPullProjectRepositoryAsync(projectResult.Value);
+            if (gitResult.IsFaulted)
+                return new DeploymentFailedException("Unable to pull from Git Repo " + projectResult.Value.Repo.Url, gitResult);
+
+            var deployments = await _deploymentService.GetDeploymentsByProjectId(id);
+            if (deployments.Count() == 0)
+                return new RecordNotFoundException("Could not find deployments in the project with id " + id);
+
+            List<Task<Result<ImageBuild>>> buildTasks = new List<Task<Result<ImageBuild>>>();
+            foreach (var deployment in deployments) {
+                buildTasks.Add(_dockerService.BuildImageAsync(deployment, cancelToken));
+                if (cancelToken.IsCancellationRequested)
+                    return new OperationCanceledException();
+
+            }
+            var buildResults = await Task.WhenAll(buildTasks);
+
+            foreach(var result in buildResults) {
+                if(result.IsFaulted || result.Value?.BuidStatus != Status.DONE || result.Value?.ImageId == null || result.Value?.Deployment == null) {
+                    return new DeploymentFailedException("Some Builds failed!", result);
+                }
+            }
+            // All builds where successful
+            List<Task<Result<string>>> runTasks = new List<Task<Result<string>>>();
+            foreach(var image in buildResults.Select(e => e.Value)) {
+                runTasks.Add(_dockerService.RunImageAsync(image, image.Deployment!, cancelToken));
+                if (cancelToken.IsCancellationRequested)
+                    return new OperationCanceledException();
+            }
+            var runResults = await Task.WhenAll(runTasks);
+            foreach(var result in runResults) {
+                if(result.IsFaulted) {
+                    return new DeploymentFailedException("Failed Starting some containers!", result);
+                }
+            }
+            return true;
         }
         public Task<Result<bool>> KillAllContainersAsync(string id) {
             throw new NotImplementedException();

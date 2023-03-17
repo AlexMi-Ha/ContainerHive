@@ -28,6 +28,8 @@ namespace ContainerHive.Core.Common.Helper.Result {
 
         public static implicit operator Result<A>(Exception ex) => new(ex);
 
+        public static implicit operator Exception(Result<A> result) => ExceptionOrDefault(result.exception);
+
         public static implicit operator Result(Result<A> res) => 
             res.IsFaulted ? new(ExceptionOrDefault(res.exception)) : new();
 
@@ -125,6 +127,9 @@ namespace ContainerHive.Core.Common.Helper.Result {
         public static implicit operator Result(bool value) => value ? new() : new(new Exception("Undefined Exception!"));
 
         public static implicit operator Result(Exception ex) => new(ex);
+
+        public static implicit operator Exception(Result result) => ExceptionOrDefault(result.exception);
+
 
         public static implicit operator Result<bool>(Result res) => 
             res.IsFaulted ? new(ExceptionOrDefault(res.exception)) : new(true);

@@ -23,6 +23,8 @@ namespace ContainerHive.Core.Datastore {
 
             modelBuilder.Entity<Deployment>().Navigation(e => e.EnvironmentVars).AutoInclude();
             modelBuilder.Entity<Deployment>().Navigation(e => e.Mounts).AutoInclude();
+
+            modelBuilder.Entity<Project>().Navigation(e => e.Repo).AutoInclude();
         }
     }
 }

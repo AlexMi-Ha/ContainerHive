@@ -7,7 +7,7 @@ using Docker.DotNet.Models;
 namespace ContainerHive.Core.Common.Interfaces {
     public interface IDockerService {
 
-        public Task<IEnumerable<ContainerListResponse>> GetAllContainersForProjectAsync(string projId, CancellationToken cancelToken);
+        public Task<Result<IEnumerable<ContainerListResponse>>> GetAllContainersForProjectAsync(string projId, CancellationToken cancelToken);
         public Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId);
 
         public Task<List<ContainerLogEntry>> GetContainerLogsAsync(string containerId, CancellationToken cancelToken);

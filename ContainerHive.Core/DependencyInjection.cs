@@ -1,5 +1,7 @@
 ﻿
+using ContainerHive.Core.Common.Interfaces;
 using ContainerHive.Core.Datastore;
+using ContainerHive.Core.Services;
 using Docker.DotNet;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +21,9 @@ namespace ContainerHive.Core {
                 new DockerClientConfiguration(new Uri(configuration["DockerDaemonSocket"]!))
                 .CreateClient()
             );
+
+            services.AddTransient<IDockerService, DockerService>();
+            services.AddTransient<IProjectService, ProjectService>();
 
             return services;
         }

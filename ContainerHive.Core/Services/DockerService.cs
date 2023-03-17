@@ -89,7 +89,7 @@ namespace ContainerHive.Core.Services {
             return await _dockerClient.Containers.ListContainersAsync(config, cancelToken);
         }
 
-        public async Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId, CancellationToken cancelToken) {
+        public async Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId) {
             return await _dbContext.ImageBuilds
                 .Include(e => e.Deployment)
                 .Where(e => e.Deployment.ProjectId.Equals(projId))
@@ -138,12 +138,16 @@ namespace ContainerHive.Core.Services {
 
         public async Task<bool> StopRunningContainersByProject(string projId, CancellationToken cancelToken) {
             var containers = await GetAllContainersForProjectAsync(projId, cancelToken);
+            if (cancelToken.IsCancellationRequested)
+                return false;
             var config = new ContainerStopParameters {
                 WaitBeforeKillSeconds = 5
             };
             bool succ = true;
             foreach(var container in containers) {
                 succ = succ && await _dockerClient.Containers.StopContainerAsync(container.ID, config, cancelToken);
+                if (cancelToken.IsCancellationRequested)
+                    return false;
             }
             return succ;
         }
@@ -169,11 +173,34 @@ namespace ContainerHive.Core.Services {
                 }
             };
             var res = await _dockerClient.Containers.PruneContainersAsync(config, cancelToken);
-            return res.ContainersDeleted.Count > 0;
+            return res != null && res.ContainersDeleted.Count > 0;
         }
 
-        public Task<Result<Container>> RunImageAsync(ImageBuild image, Deployment deployment, CancellationToken cancelToken) {
-            throw new NotImplementedException();
+        public async Task<Result<string>> RunImageAsync(ImageBuild image, Deployment deployment, CancellationToken cancelToken) {
+            if(image.ImageId == null) {
+                return new ArgumentNullException("Image Id can't be null");
+            }
+
+            var config = new CreateContainerParameters {
+                Image = image.ImageId,
+                HostConfig = new HostConfig {
+                    PortBindings = new Dictionary<string, IList<PortBinding>> {
+                        { deployment.EnvironmentPort.ToString(), new List<PortBinding> { new PortBinding { HostPort = deployment.HostPort.ToString() } } }
+                    },
+                    Binds = deployment.Mounts.Select(e => $"{e.HostPath}:{e.EnvironmentPath}").ToList()
+                },
+                Name = deployment.DeploymentId,
+                Env = deployment.EnvironmentVars.Select(e => $"{e.Key}={e.Value}").ToList(),
+                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId }, { "deployment", deployment.DeploymentId } },
+            };
+            try {
+                var res = await _dockerClient.Containers.CreateContainerAsync(config, cancelToken);
+                if (cancelToken.IsCancellationRequested)
+                    return new OperationCanceledException();
+                return res.ID;
+            }catch(DockerApiException ex) {
+                return ex;
+            }
         }
     }
 }

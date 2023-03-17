@@ -21,6 +21,8 @@ namespace ContainerHive.Core.Datastore {
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<Deployment>().Navigation(e => e.EnvironmentVars).AutoInclude();
+            modelBuilder.Entity<Deployment>().Navigation(e => e.Mounts).AutoInclude();
         }
     }
 }

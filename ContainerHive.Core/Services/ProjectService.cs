@@ -141,7 +141,7 @@ namespace ContainerHive.Core.Services {
             if (deployments.Count() == 0)
                 return new RecordNotFoundException("Could not find deployments in the project with id " + id);
 
-            List<Task<Result<ImageBuild>>> buildTasks = new List<Task<Result<ImageBuild>>>();
+            List<Task<Result<ImageBuild>>> buildTasks = new();
             foreach (var deployment in deployments) {
                 buildTasks.Add(_dockerService.BuildImageAsync(deployment, cancelToken));
                 if (cancelToken.IsCancellationRequested)
@@ -156,7 +156,7 @@ namespace ContainerHive.Core.Services {
                 }
             }
             // All builds where successful
-            List<Task<Result<string>>> runTasks = new List<Task<Result<string>>>();
+            List<Task<Result<string>>> runTasks = new();
             foreach(var image in buildResults.Select(e => e.Value)) {
                 runTasks.Add(_dockerService.RunImageAsync(image, image.Deployment!, cancelToken));
                 if (cancelToken.IsCancellationRequested)

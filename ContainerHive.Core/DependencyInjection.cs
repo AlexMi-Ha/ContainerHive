@@ -24,6 +24,7 @@ namespace ContainerHive.Core {
 
             services.AddTransient<IDockerService, DockerService>();
             services.AddTransient<IProjectService, ProjectService>();
+            services.AddTransient<IGitService, GitService>();
 
             return services;
         }

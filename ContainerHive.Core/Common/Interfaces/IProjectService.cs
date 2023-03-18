@@ -24,6 +24,6 @@ namespace ContainerHive.Core.Common.Interfaces {
 
         // Deployment
         public Task<Result<bool>> DeployAllAsync(string id, CancellationToken cancelToken);
-        public Task<Result<bool>> KillAllContainersAsync(string id);
+        public Task<Result<bool>> KillAllContainersAsync(string id, CancellationToken cancelToken);
     }
 }

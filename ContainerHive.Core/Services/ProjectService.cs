@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 namespace ContainerHive.Core.Services {
     internal class ProjectService : IProjectService {
 
+        // TODO: Validation
+
         private readonly ApplicationDbContext _dbContext;
         private readonly IDeploymentService _deploymentService;
         private readonly IDockerService _dockerService;

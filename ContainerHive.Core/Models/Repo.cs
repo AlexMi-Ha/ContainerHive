@@ -13,5 +13,8 @@ namespace ContainerHive.Core.Models {
         [MaxLength(512)]
         public required string Url { get; set; }
 
+        [MaxLength(64)]
+        public string Branch { get; set; } = "main";
+
     }
 }

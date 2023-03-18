@@ -124,7 +124,7 @@ namespace ContainerHive.Core.Services {
 
 
         public async Task<Result<bool>> DeployAllAsync(string id, CancellationToken cancelToken) {
-            var killResult = await KillAllContainersAsync(id);
+            var killResult = await KillAllContainersAsync(id, cancelToken);
             if(killResult.IsFaulted || !killResult.Value) {
                 return new DeploymentFailedException("Failed stopping and killing old Deployments", killResult);
             }
@@ -133,11 +133,13 @@ namespace ContainerHive.Core.Services {
             if (projectResult.IsFaulted || projectResult.Value == null)
                 return new RecordNotFoundException("Did not find the project with the id " + id, projectResult);
 
-            var gitResult = await _gitService.CloneOrPullProjectRepositoryAsync(projectResult.Value);
+            var gitResult = await _gitService.CloneOrPullProjectRepositoryAsync(projectResult.Value, cancelToken);
+            if (cancelToken.IsCancellationRequested)
+                return new OperationCanceledException(cancelToken);
             if (gitResult.IsFaulted)
                 return new DeploymentFailedException("Unable to pull from Git Repo " + projectResult.Value.Repo.Url, gitResult);
 
-            var deployments = await _deploymentService.GetDeploymentsByProjectId(id);
+            var deployments = await _deploymentService.GetDeploymentsByProjectIdAsync(id);
             if (deployments.Count() == 0)
                 return new RecordNotFoundException("Could not find deployments in the project with id " + id);
 
@@ -170,8 +172,26 @@ namespace ContainerHive.Core.Services {
             }
             return true;
         }
-        public Task<Result<bool>> KillAllContainersAsync(string id) {
-            throw new NotImplementedException();
+        public async Task<Result<bool>> KillAllContainersAsync(string id, CancellationToken cancelToken) {
+            var res = await _dockerService.StopRunningContainersByProjectAsync(id, cancelToken);
+            if(cancelToken.IsCancellationRequested)
+                return new OperationCanceledException();
+            if (!res) 
+                return new ProcessFailedException($"Failed to stop containers with projectID {id}!");
+
+            res = await _dockerService.PruneProcessesAsync(id, cancelToken);
+            if (cancelToken.IsCancellationRequested)
+                return new OperationCanceledException();
+            if (!res)
+                return new ProcessFailedException($"Failed to prune containers with projectID {id}!");
+
+            res = await _dockerService.PruneImagesAsync(id, cancelToken);
+            if (cancelToken.IsCancellationRequested)
+                return new OperationCanceledException();
+            if(!res)
+                return new ProcessFailedException($"Failed to prune images with projectID {id}!");
+
+            return true;
         }
     }
 }

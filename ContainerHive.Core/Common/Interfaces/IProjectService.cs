@@ -23,7 +23,7 @@ namespace ContainerHive.Core.Common.Interfaces {
         public Task<Result<string>> SetRepoUrlAsync(string id, string repoUrl);
 
         // Deployment
-        public Task<Result<bool>> DeployAllAsync(string id);
+        public Task<Result<bool>> DeployAllAsync(string id, CancellationToken cancelToken);
         public Task<Result<bool>> KillAllContainersAsync(string id);
     }
 }

@@ -153,7 +153,7 @@ namespace ContainerHive.Core.Services {
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<bool> StopRunningContainersByProject(string projId, CancellationToken cancelToken) {
+        public async Task<bool> StopRunningContainersByProjectAsync(string projId, CancellationToken cancelToken) {
             var containersResult = (await GetAllContainersForProjectAsync(projId, cancelToken));
             if (containersResult.IsFaulted)
                 return false;

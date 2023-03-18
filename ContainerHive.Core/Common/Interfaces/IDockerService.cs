@@ -20,7 +20,7 @@ namespace ContainerHive.Core.Common.Interfaces {
         public Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment, CancellationToken cancelToken);
         public Task<Result<string>> RunImageAsync(ImageBuild image, Deployment deployment, CancellationToken cancelToken);
 
-        public Task<bool> StopRunningContainersByProject(string projId, CancellationToken cancelToken);
+        public Task<bool> StopRunningContainersByProjectAsync(string projId, CancellationToken cancelToken);
 
 
     }

@@ -1,6 +1,6 @@
 ﻿
 namespace ContainerHive.Core.Common.Exceptions {
-    public class DeploymentFailedException : Exception {
+    public class DeploymentFailedException : ProcessFailedException {
 
         public DeploymentFailedException() : base() { }
         public DeploymentFailedException(string message) : base(message) { }

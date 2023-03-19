@@ -104,6 +104,14 @@ namespace ContainerHive.Core.Services {
             return proj.Map(e => e.ApiToken);
         }
 
+        public async Task<Result<bool>> CompareApiKeyAsync(string id, string apiToken) {
+            var proj = await GetProjectAsync(id);
+            if (proj.IsSuccess && !proj.Value.WebhookActive) {
+                return new ArgumentException($"The specified Project with id {id} has Webhooks disabled. Enable it to regenerate your Token!");
+            }
+            return proj.Map(e => e.ApiToken.Equals(apiToken));
+        }
+
         public async Task<Result<bool>> SetOnCustomNetworkAsync(string id, bool enabled) {
             var proj = await GetProjectAsync(id);
             if (proj.IsSuccess) {
@@ -116,6 +124,7 @@ namespace ContainerHive.Core.Services {
             return proj.Map(e => e.CustomNetwork);
         }
 
+        [Obsolete("Don't use! Repo Updates not supported yet")]
         public async Task<Result<string>> SetRepoUrlAsync(string id, string repoUrl) {
             var proj = await _dbContext.Projects
                 .Include(e => e.Repo)

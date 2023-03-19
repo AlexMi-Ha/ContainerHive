@@ -13,6 +13,7 @@ namespace ContainerHive.Core.Common.Interfaces {
 
         // Webhook
         public Task<Result<bool>> IsWebhookActiveAsync(string id);
+        public Task<Result<bool>> CompareApiKeyAsync(string id, string apiToken);
         public Task<Result<bool>> SetWebhookActiveAsync(string id, bool active);
         public Task<Result<string>> RegenerateTokenAsync(string id);
 

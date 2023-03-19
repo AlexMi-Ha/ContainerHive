@@ -1,5 +1,6 @@
 using ContainerHive.Core;
 using ContainerHive.Core.Datastore;
+using ContainerHive.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddValidationServices();
 builder.Services.AddCoreServices(builder.Configuration);
 
 var app = builder.Build();

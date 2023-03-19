@@ -10,5 +10,7 @@ namespace ContainerHive.Core.Common.Interfaces {
         public Task<Result> PullProjectRepositoryAsync(Project project, CancellationToken cancelToken);
 
         public Task<Result> CloneOrPullProjectRepositoryAsync(Project project, CancellationToken cancelToken);
+
+        public Task<Result> DeleteProjectRepoAsync(Project project, CancellationToken cancelToken);
     }
 }

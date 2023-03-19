@@ -16,10 +16,11 @@ namespace ContainerHive.Core.Services {
         private readonly IDockerService _dockerService;
         private readonly IGitService _gitService;
 
-        public ProjectService(ApplicationDbContext dbContext, IDeploymentService deploymentService, IDockerService dockerService) {
+        public ProjectService(ApplicationDbContext dbContext, IDeploymentService deploymentService, IDockerService dockerService, IGitService gitService) {
             _dbContext = dbContext;
             _deploymentService = deploymentService;
             _dockerService = dockerService;
+            _gitService = gitService;
         }
 
         public async Task<Result<string>> AddProjectAsync(Project project) {
@@ -30,15 +31,23 @@ namespace ContainerHive.Core.Services {
             
         }
 
-        public async Task<Result<bool>> DeleteProjectAsync(string id) {
+        public async Task<Result<bool>> DeleteProjectAsync(string id, CancellationToken cancelToken) {
             var proj = await _dbContext.Projects.FindAsync(id);
             if (proj == null)
                 return new RecordNotFoundException($"Project with id {id} not found!");
+
+            var pruneRes = await _dockerService.StopRunningContainersByProjectAsync(id, cancelToken);
+            if (!pruneRes)
+                return new ProcessFailedException("Failed stopping the containers");
+
+            var dirDeleteRes = await _gitService.DeleteProjectRepoAsync(proj, cancelToken);
+            if (dirDeleteRes.IsFaulted)
+                return new ProcessFailedException("Failed to delete project Repo",dirDeleteRes);
+
             _dbContext.Projects.Remove(proj);
             if (await _dbContext.SaveChangesAsync() <= 0)
                 return new ApplicationException("Failed to delete Project!");
-            // TODO: Delete local git repository
-            // TODO: stop containers and prune resources
+
             return true;
         }
 

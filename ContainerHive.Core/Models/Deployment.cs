@@ -10,7 +10,7 @@ namespace ContainerHive.Core.Models {
         public string DeploymentId { get; set; } = Guid.NewGuid().ToString();
 
         [MaxLength(512)]
-        public string DockerPath { get; set; } = ".";
+        public string DockerPath { get; set; } = "./Dockerfile";
 
         [Required]
         [Range(0, 65536)]
@@ -26,8 +26,8 @@ namespace ContainerHive.Core.Models {
         public Project? Project { get; set; }
 
         // Auto included by context
-        public IEnumerable<EnvironmentVar> EnvironmentVars { get; set; }
-        public IEnumerable<Mount> Mounts { get; set; }
+        public IEnumerable<EnvironmentVar> EnvironmentVars { get; set; } = new List<EnvironmentVar();
+        public IEnumerable<Mount> Mounts { get; set; } = new List<Mount>();
 
     }
 }

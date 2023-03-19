@@ -27,6 +27,7 @@ namespace ContainerHive.Core.Services {
             return ExecuteGitCommandAsync(args, workDir, cancelToken);
         }
 
+
         public async Task<Result> PullProjectRepositoryAsync(Project project, CancellationToken cancelToken) {
             var args = $"checkout {project.Repo.Branch}";
             var workDir = Path.Combine(_repoPath, project.ProjectId);
@@ -36,6 +37,21 @@ namespace ContainerHive.Core.Services {
             }
             args = $"pull origin";
             return await ExecuteGitCommandAsync(args, workDir, cancelToken);
+        }
+
+        public async Task<Result> DeleteProjectRepoAsync(Project project, CancellationToken cancelToken) {
+            if (!Directory.Exists(Path.Combine(_repoPath, project.ProjectId)))
+                return true; // No dir to delete -> I see it as an absolute win!
+            try {
+                await Task.Run(() => Directory.Delete(Path.Combine(_repoPath, project.ProjectId), true), cancelToken);
+                if (cancelToken.IsCancellationRequested)
+                    return new OperationCanceledException();
+            } catch (IOException ex) {
+                return ex;
+            } catch (UnauthorizedAccessException ex) {
+                return ex;
+            }
+            return true;
         }
 
         private async Task<Result> ExecuteGitCommandAsync(string args, string workDir, CancellationToken cancelToken) {

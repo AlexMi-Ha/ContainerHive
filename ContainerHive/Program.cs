@@ -1,6 +1,7 @@
 using ContainerHive.Core;
 using ContainerHive.Core.Datastore;
 using ContainerHive.Validation;
+using ContainerHive.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,11 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddValidationServices();
 builder.Services.AddCoreServices(builder.Configuration);
+
+// Background Workers
+builder.Services.AddHostedService<LongRunningServiceWorker>();
+builder.Services.AddSingleton<BackgroundWorkerQueue>();
+
 
 var app = builder.Build();
 

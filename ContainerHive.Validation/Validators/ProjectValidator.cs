@@ -10,7 +10,9 @@ namespace ContainerHive.Validation.Validators
         {
             RuleFor(p => p.ProjectId)
                 .NotEmpty()
-                .WithMessage("ProjectId cannot be empty");
+                .WithMessage("ProjectId cannot be empty")
+                .Must(id => Guid.TryParse(id, out _))
+                .WithMessage("ProjectId must be a valid GUID");
 
             RuleFor(p => p.Name)
                 .NotEmpty()
@@ -28,7 +30,9 @@ namespace ContainerHive.Validation.Validators
                 .ChildRules(e => {
                     e.RuleFor(r => r.RepoId)
                         .NotEmpty()
-                        .WithMessage("RepoId cannot be empty");
+                        .WithMessage("RepoId cannot be empty")
+                        .Must(id => Guid.TryParse(id, out _))
+                        .WithMessage("RepoId must be a valid GUID");
 
                     e.RuleFor(r => r.Url)
                         .NotEmpty()

@@ -7,7 +7,9 @@ namespace ContainerHive.Validation.Validators {
         public DeploymentValidator() {
             RuleFor(e => e.DeploymentId)
                 .NotEmpty()
-                .WithMessage("DeploymentId cannot be empty");
+                .WithMessage("DeploymentId cannot be empty")
+                .Must(id => Guid.TryParse(id, out _))
+                .WithMessage("DeploymentId must be a valid GUID");
 
             RuleFor(e => e.DockerPath)
                 // Must be a relative path to a Dockerfile

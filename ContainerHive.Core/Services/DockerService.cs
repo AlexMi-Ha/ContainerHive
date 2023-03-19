@@ -20,9 +20,9 @@ namespace ContainerHive.Core.Services {
         private readonly ApplicationDbContext _dbContext;
 
         public DockerService(IDockerClient dockerClient, IConfiguration config, ApplicationDbContext dbContext) {
-            _dockerClient = dockerClient;
+            _dockerClient = dockerClient!;
             _repoPath = config["RepoPath"]!;
-            _dbContext = dbContext;
+            _dbContext = dbContext!;
         }
 
         public async Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment, CancellationToken cancelToken) {
@@ -220,7 +220,7 @@ namespace ContainerHive.Core.Services {
                     PortBindings = new Dictionary<string, IList<PortBinding>> {
                         { deployment.EnvironmentPort.ToString(), new List<PortBinding> { new PortBinding { HostPort = deployment.HostPort.ToString() } } }
                     },
-                    Binds = deployment.Mounts.Select(e => $"{e.HostPath}:{e.EnvironmentPath}").ToList()
+                    Binds = deployment.Mounts.Select(e => $"{Path.Combine(_repoPath,deployment.ProjectId,e.HostPath)}:{e.EnvironmentPath}").ToList()
                 },
                 Name = deployment.DeploymentId,
                 Env = deployment.EnvironmentVars.Select(e => $"{e.Key}={e.Value}").ToList(),

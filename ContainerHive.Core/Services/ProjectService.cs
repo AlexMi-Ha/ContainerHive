@@ -4,31 +4,53 @@ using ContainerHive.Core.Common.Interfaces;
 using ContainerHive.Core.Datastore;
 using ContainerHive.Core.Models;
 using ContainerHive.Core.Models.Docker;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 namespace ContainerHive.Core.Services {
     internal class ProjectService : IProjectService {
-
-        // TODO: Validation
 
         private readonly ApplicationDbContext _dbContext;
         private readonly IDeploymentService _deploymentService;
         private readonly IDockerService _dockerService;
         private readonly IGitService _gitService;
 
-        public ProjectService(ApplicationDbContext dbContext, IDeploymentService deploymentService, IDockerService dockerService, IGitService gitService) {
-            _dbContext = dbContext;
-            _deploymentService = deploymentService;
-            _dockerService = dockerService;
-            _gitService = gitService;
+        private readonly IValidator<Project> _projectValidator;
+
+        public ProjectService(ApplicationDbContext dbContext, IDeploymentService deploymentService, IDockerService dockerService, IGitService gitService, IValidator<Project> projectValidator) {
+            _dbContext = dbContext ?? 
+                throw new ArgumentNullException(nameof(dbContext), "Injected Service can't be null");
+            _deploymentService = deploymentService ?? 
+                throw new ArgumentNullException(nameof(deploymentService),"Injected Service can't be null");
+            _dockerService = dockerService ?? 
+                throw new ArgumentNullException(nameof(dockerService), "Injected Service can't be null");
+            _gitService = gitService ?? 
+                throw new ArgumentNullException(nameof(gitService),"Injected Service can't be null");
+            _projectValidator = projectValidator ?? 
+                throw new ArgumentNullException(nameof(projectValidator),"Injected Validator can't be null");
         }
 
         public async Task<Result<string>> AddProjectAsync(Project project) {
+            var validationRes = _projectValidator.Validate(project);
+            if (!validationRes.IsValid)
+                return new ValidationException(validationRes.Errors);
+
             await _dbContext.Projects.AddAsync(project);
             if (await _dbContext.SaveChangesAsync() <= 0)
                 return new ApplicationException("Failed to add Project!");
             return project.ProjectId;
-            
+        }
+
+        public async Task<Result<string>> UpdateProjectAsync(Project project) {
+            var validationRes = _projectValidator.Validate(project);
+            if (!validationRes.IsValid)
+                return new ValidationException(validationRes.Errors);
+
+            _dbContext.Projects.Update(project);
+            if (await _dbContext.SaveChangesAsync() <= 0)
+                return new ApplicationException("Failed to update Project!");
+            return project.ProjectId;
+
         }
 
         public async Task<Result<bool>> DeleteProjectAsync(string id, CancellationToken cancelToken) {

@@ -8,6 +8,7 @@ namespace ContainerHive.Core.Common.Interfaces {
         public Task<IEnumerable<Project>> GetProjectsAsync();
         public Task<Result<Project>> GetProjectAsync(string projectId);
         public Task<Result<string>> AddProjectAsync(Project project);
+        public Task<Result<string>> UpdateProjectAsync(Project project);
         public Task<Result<bool>> DeleteProjectAsync(string id, CancellationToken cancelToken);
 
         // Webhook

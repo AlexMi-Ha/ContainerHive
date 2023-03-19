@@ -10,6 +10,7 @@ namespace ContainerHive.Validation.Validators {
                 .WithMessage("DeploymentId cannot be empty");
 
             RuleFor(e => e.DockerPath)
+                // Must be a relative path to a Dockerfile
                 .Matches(@"^(?:\.\.?(?:/[^\n""?:*<>|]+)*/)?Dockerfile$")
                 .WithMessage("The Dockerpath must be a valid relative Path in your project");
 
@@ -29,6 +30,7 @@ namespace ContainerHive.Validation.Validators {
                         env.RuleFor(e => e.Key)
                             .NotEmpty()
                             .WithMessage("Environment Variable Key cannot be empty")
+                            // Only alphanumerics and underscores
                             .Matches(@"^[a-zA-Z_][a-zA-Z0-9_]*$")
                             .WithMessage("Environment Variable Key must start with a letter or underscore and only contain letters, digits or underscores.");
                         env.RuleFor(e => e.Value)
@@ -45,12 +47,14 @@ namespace ContainerHive.Validation.Validators {
                         mount.RuleFor(e => e.HostPath)
                             .NotEmpty()
                             .WithMessage("Host Path cannot be empty")
+                            // Must be an absolute path
                             .Matches(@"^(?:/[^\n""?:*<>|]+)*/?$")
                             .WithMessage("Host Path must be an absolute Path relative to the Project root");
 
                         mount.RuleFor(e => e.EnvironmentPath)
                             .NotEmpty()
                             .WithMessage("Environment Path cannot be empty")
+                            // Must be an absolute path
                             .Matches(@"^(?:/[^\n""?:*<>|]+)*/?$")
                             .WithMessage("Environment Path must be an absolute Path relative to the container root");
                     });

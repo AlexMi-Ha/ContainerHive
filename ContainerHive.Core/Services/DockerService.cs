@@ -104,6 +104,21 @@ namespace ContainerHive.Core.Services {
             }
         }
 
+        public async Task<Result<IEnumerable<ContainerListResponse>>> GetAllContainersForDeploymentAsync(string deploymentId, CancellationToken cancelToken) {
+            var config = new ContainersListParameters {
+                All = true,
+                Filters = new Dictionary<string, IDictionary<string, bool>> {
+                    {"label", new Dictionary<string ,bool> { { $"deployment={deploymentId}", true } } }
+                }
+            };
+            try {
+                var res = await _dockerClient.Containers.ListContainersAsync(config, cancelToken);
+                return new Result<IEnumerable<ContainerListResponse>>(res);
+            } catch (DockerApiException ex) {
+                return ex;
+            }
+        }
+
         public async Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId) {
             return await _dbContext.ImageBuilds
                 .Include(e => e.Deployment)
@@ -159,17 +174,30 @@ namespace ContainerHive.Core.Services {
                 return false;
             if (cancelToken.IsCancellationRequested)
                 return false;
+            return await StopContainersAsync(containersResult.Value, cancelToken);
+        }
+
+        public async Task<bool> StopRunningContainersByDeploymentIdAsync(string deploymentId, CancellationToken cancelToken) {
+            var containerResult = await GetAllContainersForDeploymentAsync(deploymentId, cancelToken);
+            if (containerResult.IsFaulted)
+                return false;
+            if (cancelToken.IsCancellationRequested)
+                return false;
+            return await StopContainersAsync(containerResult.Value, cancelToken);
+        }
+
+        private async Task<bool> StopContainersAsync(IEnumerable<ContainerListResponse> containers, CancellationToken cancelToken) {
             var config = new ContainerStopParameters {
                 WaitBeforeKillSeconds = 5
             };
             bool succ = true;
             try {
-                foreach (var container in containersResult.Value) {
+                foreach (var container in containers) {
                     succ = succ && await _dockerClient.Containers.StopContainerAsync(container.ID, config, cancelToken);
                     if (cancelToken.IsCancellationRequested)
                         return false;
                 }
-            }catch(DockerApiException) {
+            } catch (DockerApiException) {
                 return false;
             }
             return succ;

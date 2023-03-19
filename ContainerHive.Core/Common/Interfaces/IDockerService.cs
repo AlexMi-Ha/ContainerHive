@@ -8,6 +8,8 @@ namespace ContainerHive.Core.Common.Interfaces {
     public interface IDockerService {
 
         public Task<Result<IEnumerable<ContainerListResponse>>> GetAllContainersForProjectAsync(string projId, CancellationToken cancelToken);
+        public Task<Result<IEnumerable<ContainerListResponse>>> GetAllContainersForDeploymentAsync(string deploymentId, CancellationToken cancelToken);
+
         public Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId);
 
         public Task<List<ContainerLogEntry>> GetContainerLogsAsync(string containerId, CancellationToken cancelToken);
@@ -21,6 +23,8 @@ namespace ContainerHive.Core.Common.Interfaces {
         public Task<Result<string>> RunImageAsync(ImageBuild image, Deployment deployment, CancellationToken cancelToken);
 
         public Task<bool> StopRunningContainersByProjectAsync(string projId, CancellationToken cancelToken);
+
+        public Task<bool> StopRunningContainersByDeploymentIdAsync(string deploymentId, CancellationToken cancelToken);
 
 
     }

@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ContainerHive.Core\ContainerHive.Core.csproj" />
+    <ProjectReference Include="..\ContainerHive.Validation\ContainerHive.Validation.csproj" />
   </ItemGroup>
 
 </Project>

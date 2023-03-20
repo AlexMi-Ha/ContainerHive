@@ -3,6 +3,8 @@ using ContainerHive.Core.Datastore;
 using ContainerHive.Filters;
 using ContainerHive.Validation;
 using ContainerHive.Workers;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,9 +22,23 @@ builder.Services.AddCoreServices(builder.Configuration);
 builder.Services.AddHostedService<LongRunningServiceWorker>();
 builder.Services.AddSingleton<BackgroundWorkerQueue>();
 
-// Key
-builder.Services.AddScoped<ApiKeyAuthFilter>();
 
+// Key -> Obsolete when using CookieAuth
+//builder.Services.AddScoped<ApiKeyAuthFilter>();
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(builder.Configuration["CookieAuth:DataProtectionPath"]!))
+    .SetApplicationName(builder.Configuration["CookieAuth:ApplicationName"]!);
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(opt => {
+        opt.Cookie.Name =   builder.Configuration["CookieAuth:Name"]!;
+        opt.Cookie.Domain = builder.Configuration["CookieAuth:Domain"]!;
+        opt.Cookie.SameSite = SameSiteMode.Lax;
+        opt.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        opt.Cookie.HttpOnly = true;
+        opt.Cookie.IsEssential = true;            
+    });
 
 var app = builder.Build();
 

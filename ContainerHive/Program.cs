@@ -1,5 +1,6 @@
 using ContainerHive.Core;
 using ContainerHive.Core.Datastore;
+using ContainerHive.Filters;
 using ContainerHive.Validation;
 using ContainerHive.Workers;
 
@@ -19,6 +20,9 @@ builder.Services.AddCoreServices(builder.Configuration);
 builder.Services.AddHostedService<LongRunningServiceWorker>();
 builder.Services.AddSingleton<BackgroundWorkerQueue>();
 
+// Key
+builder.Services.AddScoped<ApiKeyAuthFilter>();
+
 
 var app = builder.Build();
 
@@ -36,17 +40,6 @@ if (app.Environment.IsDevelopment()) {
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
-
-app.Use(async (context, next) => {
-    var token = context.Request.Headers["x-api-public-token"].ToString();
-    var config = context.RequestServices.GetRequiredService<IConfiguration>();
-    if(!config["ApiPublicToken"]!.Equals(token)) {
-        context.Response.StatusCode = 401;
-        await context.Response.WriteAsync("You are not authorized to access this resource.");
-        return;
-    }
-    await next(context);
-});
 
 app.MapControllers();
 

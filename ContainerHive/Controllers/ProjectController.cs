@@ -1,6 +1,7 @@
 ﻿using ContainerHive.Core.Common.Exceptions;
 using ContainerHive.Core.Common.Interfaces;
 using ContainerHive.Core.Models;
+using ContainerHive.Filters;
 using ContainerHive.Workers;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ContainerHive.Controllers {
     [ApiController]
     [Route("projects")]
+    [ServiceFilter(typeof(ApiKeyAuthFilter))]
     public class ProjectController : Controller {
 
         private readonly IProjectService _projectService;

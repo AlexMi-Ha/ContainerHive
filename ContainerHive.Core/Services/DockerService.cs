@@ -1,4 +1,5 @@
-﻿using ContainerHive.Core.Common.Helper.Result;
+﻿using ContainerHive.Core.Common.Exceptions;
+using ContainerHive.Core.Common.Helper.Result;
 using ContainerHive.Core.Common.Interfaces;
 using ContainerHive.Core.Datastore;
 using ContainerHive.Core.Models;
@@ -98,6 +99,8 @@ namespace ContainerHive.Core.Services {
             };
             try {
                 var res = await _dockerClient.Containers.ListContainersAsync(config, cancelToken);
+                if (cancelToken.IsCancellationRequested)
+                    return new OperationCanceledException();
                 return new Result<IEnumerable<ContainerListResponse>>(res);
             }catch(DockerApiException ex) {
                 return ex;
@@ -113,6 +116,8 @@ namespace ContainerHive.Core.Services {
             };
             try {
                 var res = await _dockerClient.Containers.ListContainersAsync(config, cancelToken);
+                if(cancelToken.IsCancellationRequested)
+                    return new OperationCanceledException();
                 return new Result<IEnumerable<ContainerListResponse>>(res);
             } catch (DockerApiException ex) {
                 return ex;
@@ -126,8 +131,20 @@ namespace ContainerHive.Core.Services {
                 .ToListAsync();
         }
 
-        public async Task<List<ContainerLogEntry>> GetContainerLogsAsync(string containerId, CancellationToken cancelToken) {
-            List<ContainerLogEntry> logs = new();
+        public async Task<Result<string>> GetContainerLogsAsync(string deploymentId, CancellationToken cancelToken) {
+
+            var containerResult = await GetAllContainersForDeploymentAsync(deploymentId, cancelToken);
+            if(cancelToken.IsCancellationRequested) {
+                return new OperationCanceledException();
+            }
+            if(containerResult.IsFaulted) {
+                return new Result<string>(containerResult);
+            }
+            if(containerResult.Value?.Count() != 1) {
+                return new RecordNotFoundException($"Could not find Container with DeploymentId {deploymentId}");
+            }
+
+            StringBuilder logsBuilder = new();
             
             var config = new ContainerLogsParameters {
                 Timestamps = true,
@@ -138,34 +155,30 @@ namespace ContainerHive.Core.Services {
 
             var buffer = ArrayPool<byte>.Shared.Rent(81920);
             try {
-                var muxStream = await _dockerClient.Containers.GetContainerLogsAsync(containerId, false, config);
+                var muxStream = await _dockerClient.Containers.GetContainerLogsAsync(containerResult.Value.First().ID, false, config);
                 using (MemoryStream m = new())
                 using (StreamReader reader = new(m)) {
                     while (!cancelToken.IsCancellationRequested) {
                         var result = await muxStream.ReadOutputAsync(buffer, 0, buffer.Length, cancelToken);
                         if (result.EOF)
                             break;
-
-                        logs.Add(new ContainerLogEntry {
-                            Log = Encoding.Default.GetString(buffer),
-                            Level = result.Target == MultiplexedStream.TargetStream.StandardError ? LogLevel.ERROR : LogLevel.STD
-                        });
-
+                        logsBuilder.AppendLine(Encoding.Default.GetString(buffer));
                     }
                 }
             }catch(DockerApiException ex) {
-                return Enumerable.Empty<ContainerLogEntry>().ToList();
+                return ex;
             }finally {
                 ArrayPool<byte>.Shared.Return(buffer);
             }
-            return logs;
+            return logsBuilder.ToString();
         }
 
-        public async Task<string?> GetImageLogsAsync(string imageId) {
-            return await _dbContext.ImageBuilds
-                .Where(e => e.ImageId.Equals(imageId))
-                .Select(e => e.Logs)
+        public async Task<Result<ImageBuild>> GetImageByIdAsync(string deploymentId) {
+            var res = await _dbContext.ImageBuilds
+                .Include(e => e.Deployment)
+                .Where(e => e.DeploymentId.Equals(deploymentId))
                 .FirstOrDefaultAsync();
+            return res != null ? res : new RecordNotFoundException($"Could not find Image with DeploymentId {deploymentId}");
         }
 
         public async Task<bool> StopRunningContainersByProjectAsync(string projId, CancellationToken cancelToken) {

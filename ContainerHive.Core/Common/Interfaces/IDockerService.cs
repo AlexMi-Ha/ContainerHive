@@ -12,8 +12,8 @@ namespace ContainerHive.Core.Common.Interfaces {
 
         public Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId);
 
-        public Task<List<ContainerLogEntry>> GetContainerLogsAsync(string containerId, CancellationToken cancelToken);
-        public Task<string?> GetImageLogsAsync(string imageId);
+        public Task<Result<string>> GetContainerLogsAsync(string deploymentId, CancellationToken cancelToken);
+        public Task<Result<ImageBuild>> GetImageByIdAsync(string deploymentId);
 
         public Task<bool> PruneProcessesAsync(string projectId, CancellationToken cancelToken);
         public Task<bool> PruneImagesAsync(string projectId, CancellationToken cancelToken);

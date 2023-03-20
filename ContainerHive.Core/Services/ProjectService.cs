@@ -52,7 +52,7 @@ namespace ContainerHive.Core.Services {
         }
 
         public async Task<Result<bool>> DeleteProjectAsync(string id, CancellationToken cancelToken) {
-            var proj = await _dbContext.Projects.FindAsync(id);
+            var proj = await _dbContext.Projects.Include(e => e.Deployments).Where(e => e.ProjectId.Equals(id)).SingleOrDefaultAsync();
             if (proj == null)
                 return new RecordNotFoundException($"Project with id {id} not found!");
 
@@ -64,6 +64,7 @@ namespace ContainerHive.Core.Services {
             if (dirDeleteRes.IsFaulted)
                 return new ProcessFailedException("Failed to delete project Repo",dirDeleteRes);
 
+            _dbContext.Deployments.RemoveRange(proj.Deployments);
             _dbContext.Projects.Remove(proj);
             if (await _dbContext.SaveChangesAsync() <= 0)
                 return new ApplicationException("Failed to delete Project!");

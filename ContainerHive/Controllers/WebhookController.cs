@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ContainerHive.Controllers {
 
     [Route("webhooks")]
+    [ApiController]
     public class WebhookController : Controller {
 
         private readonly IProjectService _projectService;

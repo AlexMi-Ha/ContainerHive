@@ -57,13 +57,14 @@ namespace ContainerHive.Core.Services {
             if(!stopResult)
                 return new ProcessFailedException($"Failed trying to Stop Running Containers");
 
+            await _dbContext.ImageBuilds.Where(e => e.DeploymentId == deployment.DeploymentId).ExecuteDeleteAsync();
             _dbContext.Deployments.Remove(deployment);
             return await _dbContext.SaveChangesAsync() > 0;
         }
 
         public async Task<Result<Deployment>> GetDeploymentByIdAsync(string deploymentId) {
-            return await _dbContext.Deployments.Include(e => e.Project).Where(e => e.DeploymentId.Equals(deploymentId)).SingleOrDefaultAsync() ?? 
-                throw new RecordNotFoundException($"Could not find Deployment with id {deploymentId}");
+            var res = await _dbContext.Deployments.Include(e => e.Project).Where(e => e.DeploymentId.Equals(deploymentId)).SingleOrDefaultAsync();
+            return res != null ? res : new RecordNotFoundException($"Could not find Deployment with id {deploymentId}");
         }
 
         public async Task<IEnumerable<Deployment>> GetDeploymentsAsync() {

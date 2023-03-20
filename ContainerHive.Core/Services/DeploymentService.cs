@@ -48,14 +48,14 @@ namespace ContainerHive.Core.Services {
             return deployment.DeploymentId;
         }
 
-        public async Task<bool> DeleteDeploymentAsync(string id, CancellationToken cancelToken) {
+        public async Task<Result<bool>> DeleteDeploymentAsync(string id, CancellationToken cancelToken) {
             var deployment = await _dbContext.Deployments.FindAsync(id);
             if(deployment == null) 
-                return false;
+                return new RecordNotFoundException($"Could not find Deployment with id {id}");
 
             var stopResult = await _dockerService.StopRunningContainersByDeploymentIdAsync(id, cancelToken);
             if(!stopResult)
-                return false;
+                return new ProcessFailedException($"Failed trying to Stop Running Containers");
 
             _dbContext.Deployments.Remove(deployment);
             return await _dbContext.SaveChangesAsync() > 0;

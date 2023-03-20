@@ -11,7 +11,7 @@ namespace ContainerHive.Core.Common.Interfaces {
         public Task<IEnumerable<Deployment>> GetDeploymentsByProjectIdAsync(string projId);
         public Task<Result<string>> AddDeploymentAsync(Deployment deployment);
         public Task<Result<string>> UpdateDeploymentAsync(Deployment deployment);
-        public Task<bool> DeleteDeploymentAsync(string id, CancellationToken cancelToken);
+        public Task<Result<bool>> DeleteDeploymentAsync(string id, CancellationToken cancelToken);
 
     }
 }

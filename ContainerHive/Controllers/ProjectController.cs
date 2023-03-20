@@ -14,10 +14,12 @@ namespace ContainerHive.Controllers {
 
         private readonly IProjectService _projectService;
         private readonly BackgroundWorkerQueue _backgroundWorkerQueue;
+        private readonly IDeploymentService _deploymentService;
 
-        public ProjectController(IProjectService projectService, BackgroundWorkerQueue backgroundWorkerQueue) {
+        public ProjectController(IProjectService projectService, BackgroundWorkerQueue backgroundWorkerQueue, IDeploymentService deploymentService) {
             _projectService = projectService!;
             _backgroundWorkerQueue = backgroundWorkerQueue!;
+            _deploymentService = deploymentService!;
         }
 
         [HttpPost]
@@ -79,6 +81,12 @@ namespace ContainerHive.Controllers {
         [Route("")]
         public async Task<IActionResult> GetProjects() {
             return Ok((await _projectService.GetProjectsAsync()).ToArray());
+        }
+
+        [HttpGet]
+        [Route("{id}/deployments")]
+        public async Task<IActionResult> GetDeployments([FromRoute]string projId) {
+            return Ok((await _deploymentService.GetDeploymentsByProjectIdAsync(projId)).ToArray());
         }
 
         // TODO: custom Networks

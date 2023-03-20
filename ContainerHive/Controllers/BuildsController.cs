@@ -1,14 +1,13 @@
 ﻿using ContainerHive.Core.Common.Exceptions;
 using ContainerHive.Core.Common.Interfaces;
-using ContainerHive.Filters;
-using Docker.DotNet;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ContainerHive.Controllers {
 
     [ApiController]
     [Route("projects/{projId}/builds")]
-    [ServiceFilter(typeof(ApiKeyAuthFilter))]
+    [Authorize]
     public class BuildsController : Controller {
 
         private readonly IDockerService _dockerService;

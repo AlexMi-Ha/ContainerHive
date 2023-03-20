@@ -6,6 +6,7 @@ using ContainerHive.Core.Models;
 using ContainerHive.Core.Models.Docker;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ContainerHive.Core.Services {
     internal class ProjectService : IProjectService {
@@ -16,13 +17,15 @@ namespace ContainerHive.Core.Services {
         private readonly IGitService _gitService;
 
         private readonly IValidator<Project> _projectValidator;
+        private readonly ILogger logger;
 
-        public ProjectService(ApplicationDbContext dbContext, IDeploymentService deploymentService, IDockerService dockerService, IGitService gitService, IValidator<Project> projectValidator) {
+        public ProjectService(ApplicationDbContext dbContext, IDeploymentService deploymentService, IDockerService dockerService, IGitService gitService, IValidator<Project> projectValidator, ILogger<ProjectService> logger) {
             _dbContext = dbContext!;
             _deploymentService = deploymentService!;
             _dockerService = dockerService!;
             _gitService = gitService!;
             _projectValidator = projectValidator!;
+            this.logger = logger!;
         }
 
         public async Task<Result<string>> AddProjectAsync(Project project) {
@@ -161,6 +164,10 @@ namespace ContainerHive.Core.Services {
 
 
         public async Task<Result<bool>> DeployAllAsync(string id, CancellationToken cancelToken) {
+            if(logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
+                logger.LogInformation("Started deploying Project with id {id}", id);
+            }
+
             var killResult = await KillAllContainersAsync(id, cancelToken);
             if(killResult.IsFaulted || !killResult.Value) {
                 return new DeploymentFailedException("Failed stopping and killing old Deployments", killResult);
@@ -207,9 +214,16 @@ namespace ContainerHive.Core.Services {
                     return new DeploymentFailedException("Failed Starting some containers!", result);
                 }
             }
+
+            if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
+                logger.LogInformation("Finished deploying Project with id {id}", id);
+            }
             return true;
         }
         public async Task<Result<bool>> KillAllContainersAsync(string id, CancellationToken cancelToken) {
+            if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
+                logger.LogInformation("Started killing Project with id {id}", id);
+            }
             var res = await _dockerService.StopRunningContainersByProjectAsync(id, cancelToken);
             if(cancelToken.IsCancellationRequested)
                 return new OperationCanceledException();
@@ -228,6 +242,9 @@ namespace ContainerHive.Core.Services {
             if(!res)
                 return new ProcessFailedException($"Failed to prune images with projectID {id}!");
 
+            if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
+                logger.LogInformation("Finished killing Project with id {id}", id);
+            }
             return true;
         }
     }

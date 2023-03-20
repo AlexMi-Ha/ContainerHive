@@ -26,7 +26,7 @@ namespace ContainerHive.Core.Models {
         public Project? Project { get; set; }
 
         // Auto included by context
-        public IEnumerable<EnvironmentVar> EnvironmentVars { get; set; } = new List<EnvironmentVar();
+        public IEnumerable<EnvironmentVar> EnvironmentVars { get; set; } = new List<EnvironmentVar>();
         public IEnumerable<Mount> Mounts { get; set; } = new List<Mount>();
 
     }

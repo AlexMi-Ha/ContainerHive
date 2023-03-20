@@ -12,7 +12,7 @@ namespace ContainerHive.Filters {
 
 
         public void OnAuthorization(AuthorizationFilterContext context) {
-            if(!context.HttpContext.Request.Headers.TryGetValue("x-api-public-token", out var token)) {
+            if(!context.HttpContext.Request.Headers.TryGetValue("x-api-private-token", out var token)) {
                 context.Result = new UnauthorizedObjectResult("API Key missing");
                 return;
             }

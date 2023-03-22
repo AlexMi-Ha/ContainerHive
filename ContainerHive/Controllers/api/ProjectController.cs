@@ -6,17 +6,20 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ContainerHive.Controllers {
+namespace ContainerHive.Controllers.api
+{
     [ApiController]
-    [Route("projects")]
+    [Route("api/projects")]
     [Authorize]
-    public class ProjectController : Controller {
+    public class ProjectController : Controller
+    {
 
         private readonly IProjectService _projectService;
         private readonly BackgroundWorkerQueue _backgroundWorkerQueue;
         private readonly IDeploymentService _deploymentService;
 
-        public ProjectController(IProjectService projectService, BackgroundWorkerQueue backgroundWorkerQueue, IDeploymentService deploymentService) {
+        public ProjectController(IProjectService projectService, BackgroundWorkerQueue backgroundWorkerQueue, IDeploymentService deploymentService)
+        {
             _projectService = projectService!;
             _backgroundWorkerQueue = backgroundWorkerQueue!;
             _deploymentService = deploymentService!;
@@ -24,12 +27,15 @@ namespace ContainerHive.Controllers {
 
         [HttpPost]
         [Route("")]
-        public async Task<IActionResult> AddProject([FromBody] Project project) {
+        public async Task<IActionResult> AddProject([FromBody] Project project)
+        {
             var res = await _projectService.AddProjectAsync(project);
             return res.Match<IActionResult>(
                 Ok,
-                err => {
-                    if(err is ValidationException) {
+                err =>
+                {
+                    if (err is ValidationException)
+                    {
                         return BadRequest(err.Message);
                     }
                     return StatusCode(500, err.Message);
@@ -39,12 +45,15 @@ namespace ContainerHive.Controllers {
 
         [HttpPut]
         [Route("")]
-        public async Task<IActionResult> UpdateProject([FromBody]Project project) {
+        public async Task<IActionResult> UpdateProject([FromBody] Project project)
+        {
             var res = await _projectService.UpdateProjectAsync(project);
             return res.Match<IActionResult>(
                 Ok,
-                err => {
-                    if (err is ValidationException) {
+                err =>
+                {
+                    if (err is ValidationException)
+                    {
                         return BadRequest(err.Message);
                     }
                     return StatusCode(500, err.Message);
@@ -54,12 +63,15 @@ namespace ContainerHive.Controllers {
 
         [HttpDelete]
         [Route("{id}")]
-        public async Task<IActionResult> DeleteProject([FromRoute]string id, CancellationToken cancelToken) {
+        public async Task<IActionResult> DeleteProject([FromRoute] string id, CancellationToken cancelToken)
+        {
             var res = await _projectService.DeleteProjectAsync(id, cancelToken);
             return res.Match<IActionResult>(
                 succ => succ ? Ok(id) : UnprocessableEntity(),
-                err => {
-                    if(err is RecordNotFoundException) {
+                err =>
+                {
+                    if (err is RecordNotFoundException)
+                    {
                         return NotFound(err.Message);
                     }
                     return StatusCode(500, err.Message);
@@ -69,7 +81,8 @@ namespace ContainerHive.Controllers {
 
         [HttpGet]
         [Route("{id}")]
-        public async Task<IActionResult> GetProjectById([FromRoute]string id) {
+        public async Task<IActionResult> GetProjectById([FromRoute] string id)
+        {
             var res = await _projectService.GetProjectAsync(id);
             return res.Match<IActionResult>(
                 Ok,
@@ -79,13 +92,15 @@ namespace ContainerHive.Controllers {
 
         [HttpGet]
         [Route("")]
-        public async Task<IActionResult> GetProjects() {
+        public async Task<IActionResult> GetProjects()
+        {
             return Ok((await _projectService.GetProjectsAsync()).ToArray());
         }
 
         [HttpGet]
         [Route("{id}/deployments")]
-        public async Task<IActionResult> GetDeployments([FromRoute]string projId) {
+        public async Task<IActionResult> GetDeployments([FromRoute] string projId)
+        {
             return Ok((await _deploymentService.GetDeploymentsByProjectIdAsync(projId)).ToArray());
         }
 
@@ -93,26 +108,29 @@ namespace ContainerHive.Controllers {
 
         [HttpPost]
         [Route("{id}/webhook/regenerate")]
-        public async Task<IActionResult> RegenerateWebhookToken([FromRoute]string id) {
+        public async Task<IActionResult> RegenerateWebhookToken([FromRoute] string id)
+        {
             var res = await _projectService.RegenerateTokenAsync(id);
             return res.Match<IActionResult>(
                     Ok,
-                    err => err is ArgumentException ? 
-                        BadRequest(err.Message) 
-                        : StatusCode(500,err.Message)
-                ) ;
+                    err => err is ArgumentException ?
+                        BadRequest(err.Message)
+                        : StatusCode(500, err.Message)
+                );
         }
 
         [HttpPost]
         [Route("{id}/deploy")]
-        public IActionResult StartDeployAllTask([FromRoute]string id) {
+        public IActionResult StartDeployAllTask([FromRoute] string id)
+        {
             _backgroundWorkerQueue.QueueBackgroundItem(async token => await _projectService.DeployAllAsync(id, token));
             return Accepted();
         }
 
         [HttpPost]
         [Route("{id}/kill")]
-        public IActionResult StartKillAllTask([FromRoute] string id) {
+        public IActionResult StartKillAllTask([FromRoute] string id)
+        {
             _backgroundWorkerQueue.QueueBackgroundItem(async token => await _projectService.KillAllContainersAsync(id, token));
             return Accepted();
         }

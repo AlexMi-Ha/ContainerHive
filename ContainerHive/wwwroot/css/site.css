@@ -1,0 +1,76 @@
+﻿html {
+    font-size: 14px;
+}
+
+@font-face {
+    font-family: "JetBrainsMono Nerd Font";
+    src: local(JetBrains Mono Bold Nerd Font Complete), url("/fonts/SUYkVPQNzqpyuvGu.woff2") format("woff2"), url("/fonts/Q1FiBQcBNoPgmqCz.ttf") format("truetype");
+    font-stretch: normal;
+    font-style: normal;
+    font-weight: 700;
+}
+
+@font-face {
+    font-family: "JetBrainsMono Nerd Font";
+    src: local(JetBrains Mono Regular Nerd Font Complete), url("/fonts/vpi7wY9hI3YBaZK1.woff2") format("woff2"), url("/fonts/8GC6i3O-8O4u_YJ0.ttf") format("truetype");
+    font-stretch: normal;
+    font-style: normal;
+    font-weight: 400;
+}
+
+:root {
+    --background: #282c34;
+    --background-light: #2C313A;
+    --white: #abb2bf;
+    --gold: #e5c07b;
+    --blue: #61afef;
+    --green: #98c379;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    background: var(--background);
+}
+
+h3, h2, h1 {
+    font-family: 'JetBrainsMono Nerd Font';
+    text-align: center;
+}
+
+
+.green-highlight {
+    color: var(--green);
+}
+
+.blue-highlight {
+    color: var(--blue);
+}
+
+.gold-highlight {
+    color: var(--gold);
+}
+
+#main-container {
+    color: var(--white);
+    padding-top: 5em;
+}
+
+p {
+    color: var(--white);
+}
+
+/* Dashboard */
+
+.project-overview {
+
+}

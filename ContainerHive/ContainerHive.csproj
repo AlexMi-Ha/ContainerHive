@@ -16,4 +16,10 @@
     <ProjectReference Include="..\ContainerHive.Validation\ContainerHive.Validation.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Views\Deployment\" />
+    <Folder Include="Views\Build\" />
+    <Folder Include="Views\Project\" />
+  </ItemGroup>
+
 </Project>

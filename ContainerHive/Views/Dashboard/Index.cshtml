@@ -1,0 +1,18 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@model IEnumerable<Project>
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+
+<h1>Hello!</h1>
+
+<div class="projects-overview">
+    <div class="projects-list">
+        @foreach(var proj in Model) {
+            <partial name="_ProjectPanel.cshtml" model="proj" />
+        }
+    </div>
+</div>

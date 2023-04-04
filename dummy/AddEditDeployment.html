@@ -52,6 +52,8 @@
             valueInput.required = true;
 
             const deleteButton = document.createElement('button');
+            deleteButton.classList = "button small";
+            deleteButton.tabIndex = -1;
             deleteButton.textContent = 'X';
             deleteButton.type='button';
             deleteButton.onclick = function() {
@@ -72,26 +74,38 @@
             <h1 class="title gold-highlight">@Model.Name</h1>
         </div>
         <div class="content">
-            <form class="deployment-tables">
-                <div class="did-floating-label-content">
-                    <input class="did-floating-input" type="text" placeholder=" " maxlength="512" autocomplete="off" name="dockerpath" required pattern='^(?:\.\.?(?:/[^\n""?:*<>|]+)*/)?Dockerfile$' />
-                    <label class="did-floating-label">Dockerpath*</label>
-                    <span class="subtitle">This should be a relative Path, rooted at the root of the Project repo.</span>
-                </div>
-                <div class="did-floating-label-content short-input">
-                    <input class="did-floating-input" type="number" max="65535" min="0" placeholder=" " autocomplete="off" name="hostPort" required/>
-                    <label class="did-floating-label">Host Port*</label>
-                </div>
-                <div class="did-floating-label-content short-input">
-                    <input class="did-floating-input" type="number" max="65535" min="0" placeholder=" " autocomplete="off" name="environmentPort" required/>
-                    <label class="did-floating-label">Environment Port*</label>
-                </div>
-                
-                <div>
-                    <button type="button" onclick="addKeyValuePair('envKeyValueList')">Add Key-Value Pair</button>
-                    <ul id="envKeyValueList"></ul>
-                </div>
+            <form class="deployment-edit">
+                <div class="deployment-edit-content">
+                    <div class="did-floating-label-content">
+                        <input class="did-floating-input" type="text" placeholder=" " maxlength="512" autocomplete="off" name="dockerpath" required pattern='^(?:\.\.?(?:/[^\n""?:*<>|]+)*/)?Dockerfile$' />
+                        <label class="did-floating-label">Dockerpath*</label>
+                        <span class="subtitle">This should be a relative Path, rooted at the root of the Project repo.</span>
+                    </div>
+                    <div class="did-floating-label-content short-input">
+                        <input class="did-floating-input" type="number" max="65535" min="0" placeholder=" " autocomplete="off" name="hostPort" required/>
+                        <label class="did-floating-label">Host Port*</label>
+                    </div>
+                    <div class="did-floating-label-content short-input">
+                        <input class="did-floating-input" type="number" max="65535" min="0" placeholder=" " autocomplete="off" name="environmentPort" required/>
+                        <label class="did-floating-label">Environment Port*</label>
+                    </div>
+                    <div class="flex-breaker"></div>
+                    <div class="key-value-component" id="key-value-environment">
+                        <h3 class="blue-highlight">Environment Vars</h3>
+                        <button type="button" class="button" onclick="addKeyValuePair('envKeyValueList')">Add Key-Value Pair</button>
+                        <ul id="envKeyValueList"></ul>
+                    </div>
+                    <div class="key-value-component" id="key-value-mounts">
+                        <h3 class="orange-highlight">Mounts</h3>
+                        <button type="button" class="button" onclick="addKeyValuePair('mountKeyValueList')">Add Key-Value Pair</button>
+                        <ul id="mountKeyValueList"></ul>
+                    </div>
 
+                </div>
+                <div class="deployment-edit-actions">
+                    <button class="button button-red-highlight">Cancel</button>
+                    <button class="button button-green-highlight">Save</button>
+                </div>
             </form>
         </div>
     </article>

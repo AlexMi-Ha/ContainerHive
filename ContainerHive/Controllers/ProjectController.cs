@@ -19,6 +19,7 @@ namespace ContainerHive.Mvc.Controllers {
         [Route("{id}")]
         [HttpGet]
         public async Task<IActionResult> Index([FromRoute] string id) {
+            ViewData["id"] = id;
             var proj = await _projectService.GetProjectAsync(id);
             return proj.Match<IActionResult>(
                 succ => View(succ),
@@ -29,6 +30,7 @@ namespace ContainerHive.Mvc.Controllers {
         [Route("{id}/deployments")]
         [HttpGet]
         public async Task<IActionResult> Deployments([FromRoute]string id) {
+            ViewData["id"] = id;
             var res = await _deploymentService.GetDeploymentsByProjectIdAsync(id);
             return View(res);
         }

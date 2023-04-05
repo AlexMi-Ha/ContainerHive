@@ -11,7 +11,7 @@ namespace ContainerHive.Controllers {
             _projectService = projectService!;
         }
 
-        public async IActionResult Index() {
+        public async Task<IActionResult> Index() {
             var res = await _projectService.GetProjectsAsync();
             return View(res);
         }

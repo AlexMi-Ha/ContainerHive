@@ -7,10 +7,22 @@
 }
 
 
-<h1>Hello!</h1>
-
+<div class="head">
+    <h1 class="title gold-highlight">Projects</h1>
+    <div class="search">
+        <div class="did-floating-label-content with-button">
+            <input class="did-floating-input" type="text" placeholder=" " autocomplete="off" name="name" />
+        <label class="did-floating-label">Search ...</label>
+        </div>
+        <button click="search()" class="button button-search button-green-highlight">Search</button>
+    </div>
+</div>
 <div class="projects-overview">
-    <div class="projects-list">
+    <div class="add-project-action">
+        <span class="icon ti ti-plus"></span>
+        <a href="add">Add Project...</a>
+    </div>
+    <div id="projects-list" class="list-display">
         @foreach(var proj in Model) {
             <partial name="_ProjectPanel.cshtml" model="proj" />
         }

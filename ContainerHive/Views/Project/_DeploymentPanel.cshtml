@@ -1,0 +1,27 @@
+﻿@using ContainerHive.Core.Models
+@model Deployment
+
+<div class="content-section border-section-divider">
+    <h3 class="title green-highlight">@Model.DockerPath &nbsp;&nbsp;<span class="subtitle smaller">@Model.HostPort : @Model.EnvironmentPort</span>
+        <br>
+        <span class="subtitle x-small">@Model.DeploymentId</span>
+    </h3>
+    <div class="deployment-tables">
+        <div class="env-vars-table">
+            <h4 class="title gold-highlight">Environment</h4>
+            @foreach(var envVar in Model.EnvironmentVars) {
+                <p>@envVar.Key = @envVar.Value</p>
+            }
+        </div>
+        <div class="mounts-table">
+            <h4 class="title gold-highlight">Mounts</h4>
+            @foreach(var mount in Model.Mounts) {
+                <p>@mount.HostPath &nbsp;&nbsp;&rightleftarrows;&nbsp;&nbsp; @mount.EnvironmentPath</p>
+            }
+        </div>
+    </div>
+    <div class="deployment-actions">
+        <button class="button">Edit</button>    
+        <button class="button button-red-highlight">Delete</button>    
+    </div>
+</div>

@@ -1,0 +1,32 @@
+﻿@using ContainerHive.Core.Models
+@model List<Deployment>
+@{
+    ViewData["Title"] = Model.FirstOrDefault()?.Project.Name ?? "" + " - Deployments";
+}
+
+
+<div class="head">
+    <h1 class="title gold-highlight">@(Model.FirstOrDefault()?.Project.Name ?? "")</h1>
+    <nav class="project-nav">
+        <div class="nav-back">
+            <a class="nav-link" asp-action="Index" asp-controller="Dashboard">
+                <span class="icon ti ti-arrow-left"></span>&nbsp;Back
+            </a>
+        </div>
+        <a class="nav-link" asp-action="Index" asp-controller="Project" asp-route-id="@(Model.FirstOrDefault()?.ProjectId ?? "")">Project</a>
+        <a class="nav-link active" asp-action="Deployments" asp-controller="Project" asp-route-id="@(Model.FirstOrDefault()?.ProjectId ?? "")">Deployment Config</a>
+        <a class="nav-link">Builds</a>
+        <div class="nav-spacer">Backaasaaaa</div>
+    </nav>
+</div>
+<div class="content">
+    <div class="add-deployment-action">
+        <span class="icon ti ti-plus"></span>
+        <a href="#">Add Deployment...</a>
+    </div>
+    <div id="deployments-list">
+        foreach(var deploy in Model) {
+            <partial name="_DeploymentPanel.cshtml" model="deploy" />
+        }
+    </div>
+</div>

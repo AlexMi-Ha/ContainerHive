@@ -95,6 +95,9 @@ namespace ContainerHive.Core.Services {
 
         public async Task<Result<string>> RegenerateTokenAsync(string id) {
             var proj = await GetProjectAsync(id);
+            if(proj.IsFaulted) {
+                return new Result<string>(proj);
+            }
             if(proj.IsSuccess && !proj.Value.WebhookActive) {
                 return new ArgumentException($"The specified Project with id {id} has Webhooks disabled. Enable it to regenerate your Token!");            
             }

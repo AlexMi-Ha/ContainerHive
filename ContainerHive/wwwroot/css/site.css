@@ -1,5 +1,6 @@
 ﻿html {
     font-size: 14px;
+    box-sizing: border-box;
 }
 
 @font-face {
@@ -19,12 +20,19 @@
 }
 
 :root {
+    --background-dark: #21252B;
     --background: #282c34;
     --background-light: #2C313A;
+    --onedark-gray-dark-dark: #454b54;
+    --onedark-gray-dark: #5c6370;
     --white: #abb2bf;
+    --orange: #d19a66;
     --gold: #e5c07b;
     --blue: #61afef;
+    --red: #e06c75;
+    --red-dark: #b15252;
     --green: #98c379;
+    --green-dark: #7ea860;
 }
 
 @media (min-width: 768px) {
@@ -39,14 +47,19 @@ html {
 }
 
 body {
-    background: var(--background);
+    background: var(--background-dark);
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
 }
 
-h3, h2, h1 {
+h4, h3, h2, h1 {
     font-family: 'JetBrainsMono Nerd Font';
     text-align: center;
 }
 
+.subtitle {
+    color: var(--onedark-gray-dark);
+}
 
 .green-highlight {
     color: var(--green);
@@ -60,17 +73,396 @@ h3, h2, h1 {
     color: var(--gold);
 }
 
+.orange-highlight {
+    color: var(--orange);
+}
+
 #main-container {
     color: var(--white);
-    padding-top: 5em;
 }
 
 p {
     color: var(--white);
 }
 
+a {
+    color: var(--white);
+}
+
+/* Project */
+
+.project-nav {
+    border-color: var(--onedark-gray-dark-dark);
+    border-width: 2px;
+    border-bottom-style: solid;
+    border-top-style: solid;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2em;
+    margin-bottom: 1em;
+}
+
+    .project-nav .nav-back {
+        flex: auto;
+    }
+
+        .project-nav .nav-back .nav-link {
+            display: inline-block;
+        }
+
+    .project-nav .nav-spacer {
+        flex: auto;
+        visibility: hidden;
+    }
+
+    .project-nav .nav-link {
+        padding: 1em 1em 0.5em 1em;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+        .project-nav .nav-link.active {
+            border-bottom: var(--red) 1px solid;
+        }
+
+        .project-nav .nav-link:hover {
+            background-color: var(--background-light);
+        }
+
+@media screen and (max-width: 560px) {
+    .project-nav, .project-nav .nav-link, .project-nav .nav-back {
+        display: block;
+    }
+
+        .project-nav .nav-spacer {
+            display: none;
+        }
+}
+
+/* Project.Project */
+
+.content {
+    max-width: 1200px;
+    width: 90%;
+    margin: 0 auto;
+}
+
+.content-panel {
+    background-color: var(--background-light);
+    margin: 1em auto;
+    padding: .5em 2em;
+    word-wrap: break-word;
+    text-align: left;
+}
+
+
+.content-section .title {
+    text-align: left;
+}
+
+.content-section .subtitle.smaller {
+    font-size: smaller;
+}
+
+.content-section .subtitle.x-small {
+    font-size: small;
+}
+
+.border-section-divider {
+    border-bottom: var(--onedark-gray-dark-dark) 1px solid;
+}
+
+/* Project.DeploymentConfig */
+.deployment-tables {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+
+    .deployment-tables .env-vars-table {
+        word-break: break-all;
+    }
+
+    .deployment-tables .mounts-table {
+        word-break: break-all;
+    }
+
+.deployment-actions {
+    display: flex;
+    justify-content: end;
+    margin-bottom: 1em;
+    margin-top: 1em;
+    gap: 1em;
+}
+
+/* AddEdit Deployment */
+
+.deployment-edit {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 75vh;
+}
+
+    .deployment-edit .deployment-edit-content {
+        margin-top: 5rem;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-around;
+    }
+
+.deployment-edit-actions {
+    align-self: flex-end;
+}
+
+.flex-breaker {
+    flex-basis: 100%;
+    height: 0;
+}
+
+.key-value-component {
+    width: 35rem;
+}
+
+    .key-value-component ul {
+        list-style: none;
+        padding-left: 0;
+        position: relative;
+    }
+
+    .key-value-component > button {
+        display: block;
+        margin: 0 auto;
+    }
+
+    .key-value-component ul li input {
+        font-size: 12px;
+        display: inline-block;
+        width: 46%;
+        height: 38px;
+        padding: 18px 20px;
+        margin-bottom: .5em;
+        background: var(--background);
+        color: var(--white);
+        font-weight: bold;
+        font-size: large;
+        border: 1px solid var(--onedark-gray-dark);
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    .key-value-component ul li button {
+        margin-left: .5em;
+    }
+
 /* Dashboard */
 
-.project-overview {
-
+.projects-overview {
+    margin-top: 1em;
 }
+
+    .projects-overview .add-project-action, .add-deployment-action {
+        width: 100%;
+        text-align: center;
+        font-size: 1.2rem;
+    }
+
+.head {
+    background-color: var(--background);
+    padding-top: 1.5em;
+}
+
+    .head .title {
+        padding-bottom: 1.5rem;
+    }
+
+.search {
+    display: flex;
+    justify-content: center;
+    background-color: var(--background);
+    padding: 1em 0;
+    border-color: var(--onedark-gray-dark-dark);
+    border-width: 1px 0px;
+    border-style: solid;
+    position: relative;
+}
+
+    .search.button {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+
+.list-display {
+    margin: 1em 0;
+    display: grid;
+    place-content: center;
+    place-items: center;
+    align-items: center;
+}
+
+.list-display-panel {
+    padding-bottom: 1.5rem;
+    width: 80%;
+    max-width: 1200px;
+}
+
+    .list-display-panel::after {
+        content: "";
+        display: block;
+        height: 0;
+        clear: both;
+        visibility: hidden;
+    }
+
+    .list-display-panel:not(:first-child) {
+        border-top: 1px solid var(--onedark-gray-dark-dark);
+    }
+
+.list-display-header {
+    font-size: 1.4rem;
+    margin-bottom: .5rem;
+}
+
+    .list-display-header .title-header {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        gap: .5em;
+        word-break: break-all;
+        margin-top: 1em;
+    }
+
+        .list-display-header .title-header .title {
+            font-family: 'JetBrainsMono Nerd Font';
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+            .list-display-header .title-header .title:hover {
+                text-decoration: underline;
+            }
+
+.list-display-panel .subtitle {
+    font-size: 70%;
+    margin: 0;
+}
+
+.list-display-description {
+    width: 90%;
+    word-wrap: break-word;
+}
+
+.list-display-panel .subsubtitle {
+    font-size: 70%;
+}
+
+/* Buttons */
+
+.button {
+    height: 38px;
+    outline: none;
+    cursor: pointer;
+    border: var(--onedark-gray-dark-dark) 1px solid;
+    border-radius: 4px;
+    background-color: var(--onedark-gray-dark-dark);
+    color: var(--white);
+    font-size: 1rem;
+}
+
+    .button:hover {
+        background-color: var(--onedark-gray-dark);
+    }
+
+    .button.small {
+        height: 33px;
+        font-size: smaller;
+    }
+
+    .button.smaller {
+        height: 27px;
+        font-size: small;
+    }
+
+    .button.button-green-highlight {
+        background-color: var(--green-dark);
+        border-color: transparent;
+        color: white;
+    }
+
+        .button.button-green-highlight:hover {
+            background-color: var(--green);
+        }
+
+    .button.button-red-highlight {
+        background-color: var(--red-dark);
+        border-color: transparent;
+        color: white;
+    }
+
+        .button.button-red-highlight:hover {
+            background-color: var(--red);
+        }
+
+/* Floating inputs */
+.did-floating-label-content {
+    position: relative;
+    width: 400px;
+}
+
+    .did-floating-label-content.short-input {
+        width: 200px;
+    }
+
+    .did-floating-label-content.with-button .did-floating-input,
+    .did-floating-label-content.with-button .did-floating-select {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+.did-floating-label {
+    color: var(--green);
+    font-size: 14px;
+    font-weight: bold;
+    font-family: 'JetBrainsMono Nerd Font';
+    position: absolute;
+    pointer-events: none;
+    left: 15px;
+    top: 12px;
+    padding: 0 5px;
+    background: var(--background);
+    transition: 0.2s ease all;
+    -moz-transition: 0.2s ease all;
+    -webkit-transition: 0.2s ease all;
+}
+
+.did-floating-input, .did-floating-select {
+    font-size: 12px;
+    display: block;
+    width: 100%;
+    height: 38px;
+    padding: 18px 20px;
+    background: var(--background);
+    color: var(--white);
+    font-weight: bold;
+    font-size: large;
+    border: 1px solid var(--onedark-gray-dark);
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+    .did-floating-input:focus {
+        outline: none;
+    }
+
+        .did-floating-input:focus ~ .did-floating-label {
+            top: -6px;
+            font-size: 13px;
+        }
+
+    .did-floating-input:not(:placeholder-shown) ~ .did-floating-label {
+        top: -8px;
+        font-size: 13px;
+    }

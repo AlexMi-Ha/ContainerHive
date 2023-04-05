@@ -13,6 +13,10 @@ namespace ContainerHive.Core.Models {
         [MaxLength(255)]
         public required string Name { get; set; }
 
+        [Required]
+        [MaxLength(512)]
+        public required string Description { get; set; }
+
         public bool WebhookActive { get; set; } = false;
 
         [Required]
@@ -26,6 +30,10 @@ namespace ContainerHive.Core.Models {
         [ForeignKey(nameof(Repo))]
         public required string RepoId { get; set; }
         public Repo? Repo { get; set; }
+
+        [Required]
+        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+        public DateTime LastUpdated { get; set; } = DateTime.Now;
 
 
         public IEnumerable<Deployment>? Deployments { get; set; }

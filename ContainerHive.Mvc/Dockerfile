@@ -10,7 +10,7 @@ WORKDIR /src
 COPY ["ContainerHive.Mvc/ContainerHive.Mvc.csproj", "ContainerHive.Mvc/"]
 COPY ["ContainerHive.Core/ContainerHive.Core.csproj", "ContainerHive.Core/"]
 COPY ["ContainerHive.Validation/ContainerHive.Validation.csproj", "ContainerHive.Validation/"]
-RUN dotnet restore "ContainerHive/ContainerHive.Mvc.csproj"
+RUN dotnet restore "ContainerHive.Mvc/ContainerHive.Mvc.csproj"
 COPY . .
 WORKDIR "/src/ContainerHive.Mvc"
 RUN dotnet build "ContainerHive.Mvc.csproj" -c Release -o /app/build

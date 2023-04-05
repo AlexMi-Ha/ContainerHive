@@ -30,9 +30,9 @@
             data: { apiToken: token },
             success: function () {
                 const snack = $('#snackbar');
-                snack.innerHtml = 'The Deployment pipeline was started!';
-                snack.visible = true;
-                setTimeout(() => { snack.visible=false; }, 1000);
+                snack.html('The Deployment pipeline was started!');
+                snack.css({ opacity: 1 })
+                setTimeout(() => { snack.css({ opacity: 0 }); }, 1000);
             }
         });
     }
@@ -44,15 +44,19 @@
             data: { apiToken: token },
             success: function () {
                 const snack = $('#snackbar');
-                snack.innerHtml = 'Started killing all running processes!';
-                snack.visible = true;
-                setTimeout(() => { snack.visible=false; }, 1000);
+                snack.html('Started killing all running processes!');
+                snack.css({ opacity: 1 })
+                setTimeout(() => { snack.css({ opacity: 0 }); }, 1000);
             }
         });
     }
 
     function copyApiToken() {
         navigator.clipboard.writeText(token);
+        const snack = $('#snackbar');
+        snack.html('Copied the Token!');
+        snack.css({ opacity: 1 })
+        setTimeout(() => { snack.css({ opacity: 0 }); }, 1000);
     }
 
     function resetApiToken() {
@@ -62,9 +66,9 @@
             success: function (e) {
                 token = e;
                 const snack = $('#snackbar');
-                snack.innerHtml = 'Reset the Token!';
-                snack.visible = true;
-                setTimeout(() => { snack.visible=false; }, 1000);
+                snack.html('Reset the Token!');
+                snack.css({ opacity: 1 })
+                setTimeout(() => { snack.css({ opacity: 0 }); }, 1000);
             }
         });
     }
@@ -75,9 +79,8 @@
             url: '/project/@Model.ProjectId/api/togglewebhook',
             data: { active: active },
             success: function (e) {
-                const webhookContainer = $('webhook-container');
                 if(active) {
-                   webhookContainer.innerHtml = ```
+                    $('#webhook-container').html(`
                         <h3 class="title green-highlight">Webhook</h3>
                         <p>
                             Api Token<br>
@@ -88,12 +91,12 @@
                         <br>
                         <br>
                         <button onclick="toggleWebhook(false)" class="button small button-red-highlight">Disable Webhook</button>
-                   ```;
+                   `);
                 }else {
-                    webhookContainer.innerHtml = ```
+                    $('#webhook-container').html(`
                         <h3 class="title green-highlight">Webhook</h3>
                         <button onclick="toggleWebhook(true)" class="button small button-red-highlight">Activate Webhook</button>
-                    ```;
+                    `);
                 }
             }
         });
@@ -127,7 +130,7 @@
             <button onclick="toggleWebhook(false)" class="button small button-red-highlight">Disable Webhook</button>
         </div>
     }else {
-        <div class="content-section">
+        <div class="content-section" id="webhook-container">
             <h3 class="title green-highlight">Webhook</h3>
             <button onclick="toggleWebhook(true)" class="button small button-red-highlight">Activate Webhook</button>
         </div>
@@ -137,5 +140,9 @@
         <h3 class="title green-highlight">Source</h3>
         <p><span class="icon ti ti-code"></span>&nbsp;<a href="@Model.Repo.Url">@Model.Repo.Url</a></p>
         <p class="subtitle">At Branch @Model.Repo.Branch</p>
+    </div>
+
+    <div id="snackbar">
+        Lorem Ipsum dolor sit amet
     </div>
 </div>

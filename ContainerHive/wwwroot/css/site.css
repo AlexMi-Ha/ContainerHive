@@ -197,6 +197,22 @@ a {
     gap: 1em;
 }
 
+#snackbar {
+    background-color: var(--green-dark);
+    color: white;
+    font-weight: bold;
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 50%;
+    padding: 2em;
+    border-radius: 2px;
+    transition: all ease-in-out .5s;
+    opacity: 0;
+
+}
+
 /* AddEdit Deployment */
 
 .deployment-edit {

@@ -25,7 +25,7 @@
         <a href="#">Add Deployment...</a>
     </div>
     <div id="deployments-list">
-        foreach(var deploy in Model) {
+        @foreach(var deploy in Model) {
             <partial name="_DeploymentPanel.cshtml" model="deploy" />
         }
     </div>

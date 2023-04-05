@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ContainerHive", "ContainerHive\ContainerHive.csproj", "{49424B78-BFE5-4880-96B9-30D7A2FB5904}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ContainerHive.Mvc", "ContainerHive\ContainerHive.Mvc.csproj", "{49424B78-BFE5-4880-96B9-30D7A2FB5904}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ContainerHive.Core", "ContainerHive.Core\ContainerHive.Core.csproj", "{EE5A07B8-259F-471F-AC73-326638B32C9D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ContainerHive.Validation", "ContainerHive.Validation\ContainerHive.Validation.csproj", "{718B8095-9026-4C3B-B52A-058E99CDC8EE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ContainerHive.Validation", "ContainerHive.Validation\ContainerHive.Validation.csproj", "{718B8095-9026-4C3B-B52A-058E99CDC8EE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,10 +1,11 @@
 ﻿using ContainerHive.Core.Common.Exceptions;
 using ContainerHive.Core.Common.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ContainerHive.Mvc.Controllers {
-    [Controller]
     [Route("project")]
+    [Authorize]
     public class ProjectController : Controller {
 
         private readonly IDeploymentService _deploymentService;
@@ -17,7 +18,7 @@ namespace ContainerHive.Mvc.Controllers {
 
         [Route("{id}")]
         [HttpGet]
-        public async Task<IActionResult> Index(string id) {
+        public async Task<IActionResult> Index([FromRoute] string id) {
             var proj = await _projectService.GetProjectAsync(id);
             return proj.Match<IActionResult>(
                 succ => View(succ),
@@ -34,8 +35,8 @@ namespace ContainerHive.Mvc.Controllers {
 
 
         [Route("{id}/api/resetToken")]
-        [HttpGet]
-        public async Task<IActionResult> ResetToken(string id) { 
+        [HttpPost]
+        public async Task<IActionResult> ResetToken([FromRoute] string id) { 
             var res = await _projectService.RegenerateTokenAsync(id);
             return res.Match<IActionResult>(
                 Ok,
@@ -51,9 +52,9 @@ namespace ContainerHive.Mvc.Controllers {
             );
         }
 
-        [Route("{id}/api/togglewebhook")]
         [HttpPost]
-        public async Task<IActionResult> ToggleWebhook([FromRoute]string id, [FromBody]bool active) {
+        [Route("{id}/api/togglewebhook")]
+        public async Task<IActionResult> ToggleWebhook([FromRoute]string id, [FromForm]bool active) {
             var res = await _projectService.SetWebhookActiveAsync(id, active);
             return res.Match<IActionResult>(
                 succ => Ok(),

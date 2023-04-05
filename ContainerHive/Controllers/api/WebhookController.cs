@@ -3,7 +3,7 @@ using ContainerHive.Core.Common.Interfaces;
 using ContainerHive.Workers;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ContainerHive.Controllers.old
+namespace ContainerHive.Mvc.Controllers.api
 {
 
     [Route("webhooks")]
@@ -22,7 +22,7 @@ namespace ContainerHive.Controllers.old
 
         [HttpPost]
         [Route("{id}/deploy")]
-        public async Task<IActionResult> DeployAllTask([FromRoute] string id, [FromBody] string apiToken)
+        public async Task<IActionResult> DeployAllTask([FromRoute] string id, [FromForm] string apiToken)
         {
             var cmpRes = await _projectService.CompareApiKeyAsync(id, apiToken);
             return cmpRes.Match<IActionResult>(
@@ -48,7 +48,7 @@ namespace ContainerHive.Controllers.old
 
         [HttpPost]
         [Route("{id}/kill")]
-        public async Task<IActionResult> KillAllTask([FromRoute] string id, [FromBody] string apiToken)
+        public async Task<IActionResult> KillAllTask([FromRoute] string id, [FromForm] string apiToken)
         {
             var cmpRes = await _projectService.CompareApiKeyAsync(id, apiToken);
             return cmpRes.Match<IActionResult>(

@@ -1,8 +1,10 @@
 ﻿using ContainerHive.Core.Common.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ContainerHive.Controllers {
     [Controller]
+    [Authorize]
     public class DashboardController : Controller {
 
         private readonly IProjectService _projectService;
@@ -10,6 +12,7 @@ namespace ContainerHive.Controllers {
         public DashboardController(IProjectService projectService) {
             _projectService = projectService!;
         }
+
 
         public async Task<IActionResult> Index() {
             var res = await _projectService.GetProjectsAsync();

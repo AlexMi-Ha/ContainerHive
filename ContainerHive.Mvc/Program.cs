@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,15 +38,20 @@ builder.Services.AddDataProtection()
     .SetApplicationName(builder.Configuration["CookieAuth:ApplicationName"]!);
 
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(opt => {
-        opt.Cookie.Name = builder.Configuration["CookieAuth:Name"]!;
-        if(!builder.Environment.IsDevelopment())
-            opt.Cookie.Domain = builder.Configuration["CookieAuth:Domain"]!;
-        opt.Cookie.SameSite = SameSiteMode.Lax;
-        opt.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        opt.Cookie.HttpOnly = true;
-        opt.Cookie.IsEssential = true;
+builder.Services.AddAuthentication(opt => {
+    opt.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    opt.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    opt.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(o => {
+    o.TokenValidationParameters = new TokenValidationParameters {
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true
+    };
 });
 
 var app = builder.Build();
@@ -62,6 +70,14 @@ using (var scope = app.Services.CreateScope()) {
 //}
 
 app.UseHttpsRedirection();
+
+app.Use(async (context, next) => {
+    var token = context.Request.Cookies[app.Configuration["CookieAuth:Name"]!];
+    if (token != null) {
+        context.Request.Headers.Add("Authorization", "Bearer " + token);
+    }
+    await next();
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

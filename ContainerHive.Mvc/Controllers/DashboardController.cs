@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ContainerHive.Controllers {
+namespace ContainerHive.Mvc.Controllers {
     [Controller]
     [Authorize]
     public class DashboardController : Controller {

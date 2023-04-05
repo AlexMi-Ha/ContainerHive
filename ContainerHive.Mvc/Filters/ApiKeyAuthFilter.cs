@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace ContainerHive.Filters {
+namespace ContainerHive.Mvc.Filters {
     public class ApiKeyAuthFilter : IAuthorizationFilter {
 
         private readonly IConfiguration _configuration;

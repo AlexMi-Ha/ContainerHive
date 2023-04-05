@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace ContainerHive.Workers {
+namespace ContainerHive.Mvc.Workers {
     public class BackgroundWorkerQueue {
 
         private ConcurrentQueue<Func<CancellationToken, Task>> _workItems = new();

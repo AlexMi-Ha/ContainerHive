@@ -1,8 +1,8 @@
 using ContainerHive.Core;
 using ContainerHive.Core.Datastore;
-using ContainerHive.Filters;
+using ContainerHive.Mvc.Filters;
 using ContainerHive.Validation;
-using ContainerHive.Workers;
+using ContainerHive.Mvc.Workers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;

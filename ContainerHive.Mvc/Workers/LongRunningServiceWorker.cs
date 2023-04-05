@@ -1,4 +1,4 @@
-﻿namespace ContainerHive.Workers {
+﻿namespace ContainerHive.Mvc.Workers {
     public class LongRunningServiceWorker : BackgroundService {
 
         private readonly BackgroundWorkerQueue queue;

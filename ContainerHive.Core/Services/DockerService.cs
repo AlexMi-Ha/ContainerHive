@@ -241,7 +241,8 @@ namespace ContainerHive.Core.Services {
                 return false;
             if (cancelToken.IsCancellationRequested)
                 return false;
-            return await StopContainersAsync(containersResult.Value, cancelToken);
+            await StopContainersAsync(containersResult.Value, cancelToken);
+            return true;
         }
 
         public async Task<bool> StopRunningContainersByDeploymentIdAsync(string deploymentId, CancellationToken cancelToken) {

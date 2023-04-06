@@ -54,7 +54,7 @@ namespace ContainerHive.Core.Services {
                         while(!responseReader.EndOfStream && !cancelToken.IsCancellationRequested) {
                             string? output = await responseReader.ReadLineAsync();
                             if(!String.IsNullOrEmpty(output)) {
-                                image.Logs += Regex.Replace(Regex.Replace(output, @"[{}\\n]+", ""), @"\\(.)", "$1").Replace(@"\u003e", ">");
+                                image.Logs += Regex.Replace(Regex.Replace(output, @"[{}\\n]+", ""), @"\\(.)", "$1").Replace(@"\u003e", ">") + "\n";
                             }
                         }
                     }
@@ -108,31 +108,16 @@ namespace ContainerHive.Core.Services {
         private Stream CreateTarFileForDockerfileDirectory(string directory) {
             var stream = new MemoryStream();
             var filePaths = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
-            logger.LogInformation(filePaths.ToString());
-            using(var archive = new TarOutputStream(stream, Encoding.UTF8)) {
+            using (var archive = TarArchive.CreateOutputTarArchive(stream)) {
                 archive.IsStreamOwner = false;
 
-                foreach(var file in filePaths) {
-                    var tarName = Path.GetFileNameWithoutExtension(file);
+                foreach (var file in filePaths) {
+                    logger.LogInformation(file);
 
-                    var entry = TarEntry.CreateTarEntry(tarName);
-                    using(var fileStream = File.OpenRead(file)) {
-                        entry.Size = fileStream.Length;
-                        archive.PutNextEntry(entry);
+                    var entry = TarEntry.CreateEntryFromFile(file);
+                    archive.WriteEntry(entry, true);
 
-                        var localBuffer = new byte[32 * 1024];
-
-                        while(true) {
-                            var numberOfBytesSaved = fileStream.Read(localBuffer, 0, localBuffer.Length);
-                            if (numberOfBytesSaved <= 0)
-                                break;
-
-                            archive.Write(localBuffer, 0, numberOfBytesSaved);
-                        }
-                        archive.CloseEntry();
-                    }
                 }
-
                 archive.Close();
 
                 stream.Position = 0;

@@ -50,6 +50,10 @@ namespace ContainerHive.Core.Services {
                             image.Logs += $"[{DateTime.Now}] {msg.Stream}\n";
                         }), cancelToken);
                     if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
+
+                    image.Logs += $"[{DateTime.Now}] Exiting Building\n";
+                    _dbContext.ImageBuilds.Update(image);
+                    await _dbContext.SaveChangesAsync(cancelToken);
                 }
             } catch (Exception ex) {
                 if (ex is not DockerApiException or IOException)
@@ -62,10 +66,6 @@ namespace ContainerHive.Core.Services {
                 _dbContext.ImageBuilds.Update(image);
                 await _dbContext.SaveChangesAsync(cancelToken);
                 return ex;
-            }finally {
-                image.Logs += $"[{DateTime.Now}] Exiting Building\n";
-                _dbContext.ImageBuilds.Update(image);
-                await _dbContext.SaveChangesAsync(cancelToken);
             }
 
             var listConfig = new ImagesListParameters {

@@ -29,7 +29,7 @@ namespace ContainerHive.Core.Services {
         public async Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment, CancellationToken cancelToken) {
             var config = new ImageBuildParameters {
                 Dockerfile = Path.Combine(_repoPath, deployment.ProjectId ,deployment.DockerPath),
-                Tags = new List<string> { $"project={deployment.ProjectId.ToLower()}", $"deployment={deployment.DeploymentId.ToLower()}" },
+                Tags = new List<string> { $"project:{deployment.ProjectId.ToLower()}", $"deployment:{deployment.DeploymentId.ToLower()}" },
                 Labels = new Dictionary<string, string> { { "project", deployment.ProjectId.ToLower() }, { "deployment", deployment.DeploymentId.ToLower() } }  
             };
             var image = new ImageBuild {

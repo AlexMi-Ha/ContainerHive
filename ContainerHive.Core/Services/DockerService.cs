@@ -38,7 +38,7 @@ namespace ContainerHive.Core.Services {
                 BuidStatus = Status.BUILDING,
                 Created = DateTime.Now
             };
-            _dbContext.ImageBuilds.Update(image);
+            await _dbContext.ImageBuilds.AddAsync(image);
             await _dbContext.SaveChangesAsync(cancelToken);
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
             try {

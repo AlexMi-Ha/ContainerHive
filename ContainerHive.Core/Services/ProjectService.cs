@@ -174,6 +174,9 @@ namespace ContainerHive.Core.Services {
 
             var killResult = await KillAllContainersAsync(id, cancelToken);
             if(killResult.IsFaulted || !killResult.Value) {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning)) {
+                    logger.LogWarning("Failed stopping and killing old Deployments");
+                }
                 return new DeploymentFailedException("Failed stopping and killing old Deployments", killResult);
             }
 
@@ -184,8 +187,12 @@ namespace ContainerHive.Core.Services {
             var gitResult = await _gitService.CloneOrPullProjectRepositoryAsync(projectResult.Value, cancelToken);
             if (cancelToken.IsCancellationRequested)
                 return new OperationCanceledException(cancelToken);
-            if (gitResult.IsFaulted)
+            if (gitResult.IsFaulted) {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning)) {
+                    logger.LogWarning("Unable to pull from Git Repo {url}",projectResult.Value.Repo.Url);
+                }
                 return new DeploymentFailedException("Unable to pull from Git Repo " + projectResult.Value.Repo.Url, gitResult);
+            }
 
             var deployments = await _deploymentService.GetDeploymentsByProjectIdAsync(id);
             if (deployments.Count() == 0)
@@ -202,6 +209,9 @@ namespace ContainerHive.Core.Services {
 
             foreach(var result in buildResults) {
                 if(result.IsFaulted || result.Value?.BuidStatus != Status.DONE || result.Value?.ImageId == null || result.Value?.Deployment == null) {
+                    if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning)) {
+                        logger.LogWarning("Some Builds failed!");
+                    }
                     return new DeploymentFailedException("Some Builds failed!", result);
                 }
             }
@@ -215,6 +225,9 @@ namespace ContainerHive.Core.Services {
             var runResults = await Task.WhenAll(runTasks);
             foreach(var result in runResults) {
                 if(result.IsFaulted) {
+                    if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning)) {
+                        logger.LogWarning("Failed Starting some containers!");
+                    }
                     return new DeploymentFailedException("Failed Starting some containers!", result);
                 }
             }

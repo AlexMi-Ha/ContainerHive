@@ -247,7 +247,7 @@ namespace ContainerHive.Core.Services {
             }catch(DockerApiException) { 
                 return false; 
             }
-            return res != null && res.ContainersDeleted.Count > 0;
+            return res != null && res.ContainersDeleted?.Count > 0;
         }
 
         public async Task<Result<string>> RunImageAsync(ImageBuild image, Deployment deployment, CancellationToken cancelToken) {

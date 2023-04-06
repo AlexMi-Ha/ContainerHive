@@ -23,7 +23,7 @@ namespace ContainerHive.Mvc.Controllers.api {
             var cmpRes = await _projectService.CompareApiKeyAsync(id, apiToken);
             return cmpRes.Match<IActionResult>(
                 succ => {
-                    _backgroundWorkerQueue.QueueBackgroundItem(async token => await _projectService.DeployAllAsync(id, token));
+                    _backgroundWorkerQueue.QueueBackgroundItem(async (projService, token) => await projService.DeployAllAsync(id, token));
                     return Accepted();
                 },
                 err => {
@@ -44,7 +44,7 @@ namespace ContainerHive.Mvc.Controllers.api {
             var cmpRes = await _projectService.CompareApiKeyAsync(id, apiToken);
             return cmpRes.Match<IActionResult>(
                 succ => {
-                    _backgroundWorkerQueue.QueueBackgroundItem(async token => await _projectService.KillAllContainersAsync(id, token));
+                    _backgroundWorkerQueue.QueueBackgroundItem(async (projService, token) => await projService.KillAllContainersAsync(id, token));
                     return Accepted();
                 },
                 err => {

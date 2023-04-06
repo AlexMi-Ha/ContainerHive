@@ -6,6 +6,7 @@ using ContainerHive.Core.Models;
 using ContainerHive.Core.Models.Docker;
 using Docker.DotNet;
 using Docker.DotNet.Models;
+using ICSharpCode.SharpZipLib.Tar;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Buffers;
@@ -30,7 +31,7 @@ namespace ContainerHive.Core.Services {
             var config = new ImageBuildParameters {
                 Dockerfile = Path.Combine(_repoPath, deployment.ProjectId ,deployment.DockerPath),
                 Tags = new List<string> { $"project:{deployment.ProjectId.ToLower()}", $"deployment:{deployment.DeploymentId.ToLower()}" },
-                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId.ToLower() }, { "deployment", deployment.DeploymentId.ToLower() } }  
+                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId.ToLower() }, { "deployment", deployment.DeploymentId.ToLower() } } 
             };
             var image = new ImageBuild {
                 Deployment = deployment,
@@ -43,13 +44,13 @@ namespace ContainerHive.Core.Services {
             await _dbContext.SaveChangesAsync(cancelToken);
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
             try {
-                using (var dockerFileStream = File.OpenRead(Path.Combine(_repoPath, deployment.ProjectId, deployment.DockerPath))) {
+                using (var tarStream = CreateTarFileForDockerfileDirectory(Path.Combine(_repoPath, deployment.ProjectId))) {
                     await _dockerClient.Images.BuildImageFromDockerfileAsync(
-                        config, dockerFileStream, null, null,
+                        config, tarStream, null, null,
                         new Progress<JSONMessage>(msg => {
                             image.Logs += $"[{DateTime.Now}] {msg.Stream}\n";
                         }), cancelToken);
-                    if (cancelToken.IsCancellationRequested) return new OperationCanceledException(); 
+                    if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
                 }
             } catch (Exception ex) {
                 if (ex is not DockerApiException or IOException)
@@ -89,6 +90,41 @@ namespace ContainerHive.Core.Services {
             _dbContext.ImageBuilds.Update(image);
             await _dbContext.SaveChangesAsync(cancelToken);
             return cancelToken.IsCancellationRequested ? new OperationCanceledException() : image;
+        }
+
+        private Stream CreateTarFileForDockerfileDirectory(string directory) {
+            var stream = new MemoryStream();
+            var filePaths = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
+
+            using(var archive = new TarOutputStream(stream, Encoding.UTF8)) {
+                archive.IsStreamOwner = false;
+
+                foreach(var file in filePaths) {
+                    var tarName = Path.GetFileNameWithoutExtension(file);
+
+                    var entry = TarEntry.CreateTarEntry(tarName);
+                    using(var fileStream = File.OpenRead(file)) {
+                        entry.Size = fileStream.Length;
+                        archive.PutNextEntry(entry);
+
+                        var localBuffer = new byte[32 * 1024];
+
+                        while(true) {
+                            var numberOfBytesSaved = fileStream.Read(localBuffer, 0, localBuffer.Length);
+                            if (numberOfBytesSaved <= 0)
+                                break;
+
+                            archive.Write(localBuffer, 0, numberOfBytesSaved);
+                        }
+                        archive.CloseEntry();
+                    }
+                }
+
+                archive.Close();
+
+                stream.Position = 0;
+                return stream;
+            }
         }
 
         public async Task<Result<IEnumerable<ContainerListResponse>>> GetAllContainersForProjectAsync(string projId, CancellationToken cancelToken) {

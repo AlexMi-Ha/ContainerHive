@@ -75,11 +75,9 @@ app.UseHttpsRedirection();
 
 app.Use(async (context, next) => {
     var token = context.Request.Cookies[app.Configuration["CookieAuth:Name"]!];
-    if (token == null) {
-        context.Response.Redirect("https://dev.alexmiha.de/");
-        return;
+    if (token != null) {
+        context.Request.Headers.Add("Authorization", "Bearer " + token);
     }
-    context.Request.Headers.Add("Authorization", "Bearer " + token);
     await next();
 });
 

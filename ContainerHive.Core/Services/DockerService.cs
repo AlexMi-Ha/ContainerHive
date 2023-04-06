@@ -48,13 +48,13 @@ namespace ContainerHive.Core.Services {
             await _dbContext.SaveChangesAsync(cancelToken);
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
             try {
-                using (var tarStream = CreateTarFileForDockerfileDirectory(Path.Combine(_repoPath, deployment.ProjectId))) {
+                using (var tarStream = await CreateTarFileForDockerfileDirectory(Path.Combine(_repoPath, deployment.ProjectId), cancelToken)) {
                     using (var responseStream = await _dockerClient.Images.BuildImageFromDockerfileAsync(tarStream, config, cancelToken))
                     using (var responseReader = new StreamReader(responseStream)) {
                         while(!responseReader.EndOfStream && !cancelToken.IsCancellationRequested) {
                             string? output = await responseReader.ReadLineAsync();
                             if(!String.IsNullOrEmpty(output)) {
-                                image.Logs += Regex.Replace(Regex.Replace(output, @"[{}\\n]+", ""), @"\\(.)", "$1").Replace(@"\u003e", ">") + "\n";
+                                image.Logs += Regex.Replace(Regex.Replace(output, @"[{}\n]+", ""), @"\\(.)", "$1").Replace(@"\u003e", ">") + "\n";
                             }
                         }
                     }
@@ -105,19 +105,40 @@ namespace ContainerHive.Core.Services {
             return cancelToken.IsCancellationRequested ? new OperationCanceledException() : image;
         }
 
-        private Stream CreateTarFileForDockerfileDirectory(string directory) {
+        private async Task<Stream> CreateTarFileForDockerfileDirectory(string directory, CancellationToken cancelToken) {
             var stream = new MemoryStream();
+            
             var filePaths = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
-            using (var archive = TarArchive.CreateOutputTarArchive(stream)) {
+            using(var archive = new TarOutputStream(stream, Encoding.UTF8)) {
                 archive.IsStreamOwner = false;
 
-                foreach (var file in filePaths) {
+                foreach(var file in filePaths) {
                     logger.LogInformation(file);
+                    var relfile = Path.GetFileName(file);
+                    using(var inStream = new FileStream(file, FileMode.Open, FileAccess.Read)) {
+                        var entry = TarEntry.CreateTarEntry(relfile);
+                        entry.Size = inStream.Length;
 
-                    var entry = TarEntry.CreateEntryFromFile(file);
-                    archive.WriteEntry(entry, true);
+                        await archive.PutNextEntryAsync(entry, cancelToken).ConfigureAwait(false);
+                        if(cancelToken.IsCancellationRequested) {
+                            stream.Position = 0;
+                            return stream;
+                        }
 
+                        await inStream.CopyToAsync(archive, 4096, cancelToken).ConfigureAwait(false);
+                        if (cancelToken.IsCancellationRequested) {
+                            stream.Position = 0;
+                            return stream;
+                        }
+
+                        await archive.CloseEntryAsync(cancelToken).ConfigureAwait(false);
+                        if (cancelToken.IsCancellationRequested) {
+                            stream.Position = 0;
+                            return stream;
+                        }
+                    }
                 }
+
                 archive.Close();
 
                 stream.Position = 0;

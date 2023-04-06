@@ -168,6 +168,17 @@ namespace ContainerHive.Core.Services {
 
 
         public async Task<Result<bool>> DeployAllAsync(string id, CancellationToken cancelToken) {
+            var buildsRunning = await _dbContext.ImageBuilds
+                    .Include(e => e.Deployment)
+                    .ThenInclude(e => e.Project)
+                    .Where(e => e.Deployment.ProjectId.Equals(id))
+                    .Where(e => e.BuidStatus == Status.BUILDING || e.BuidStatus == Status.UNKNOWN)
+                    .AnyAsync();
+            if(buildsRunning) {
+                logger.LogWarning("Duplicate Build was started for project {id}! Interrupting...", id);
+                return new DeploymentFailedException("Wait for build to finish");
+            }
+
             if(logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
                 logger.LogInformation("Started deploying Project with id {id}", id);
             }

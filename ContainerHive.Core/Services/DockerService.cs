@@ -29,7 +29,6 @@ namespace ContainerHive.Core.Services {
 
         public async Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment, CancellationToken cancelToken) {
             var config = new ImageBuildParameters {
-                Dockerfile = Path.Combine(_repoPath, deployment.ProjectId ,deployment.DockerPath),
                 Tags = new List<string> { $"project:{deployment.ProjectId.ToLower()}", $"deployment:{deployment.DeploymentId.ToLower()}" },
                 Labels = new Dictionary<string, string> { { "project", deployment.ProjectId.ToLower() }, { "deployment", deployment.DeploymentId.ToLower() } } 
             };
@@ -63,6 +62,10 @@ namespace ContainerHive.Core.Services {
                 _dbContext.ImageBuilds.Update(image);
                 await _dbContext.SaveChangesAsync(cancelToken);
                 return ex;
+            }finally {
+                image.Logs += $"[{DateTime.Now}] Exiting Building\n";
+                _dbContext.ImageBuilds.Update(image);
+                await _dbContext.SaveChangesAsync(cancelToken);
             }
 
             var listConfig = new ImagesListParameters {

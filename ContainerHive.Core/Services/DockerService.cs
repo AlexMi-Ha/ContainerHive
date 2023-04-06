@@ -9,22 +9,27 @@ using Docker.DotNet.Models;
 using ICSharpCode.SharpZipLib.Tar;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ContainerHive.Core.Services {
     internal class DockerService : IDockerService {
 
         private readonly IDockerClient _dockerClient;
 
+        private readonly ILogger logger;
+
         private readonly string _repoPath;
 
         private readonly ApplicationDbContext _dbContext;
 
-        public DockerService(IDockerClient dockerClient, IConfiguration config, ApplicationDbContext dbContext) {
+        public DockerService(IDockerClient dockerClient, IConfiguration config, ApplicationDbContext dbContext, ILogger logger) {
             _dockerClient = dockerClient!;
             _repoPath = config["RepoPath"]!;
             _dbContext = dbContext!;
+            this.logger = logger;
         }
 
         public async Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment, CancellationToken cancelToken) {
@@ -44,11 +49,15 @@ namespace ContainerHive.Core.Services {
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
             try {
                 using (var tarStream = CreateTarFileForDockerfileDirectory(Path.Combine(_repoPath, deployment.ProjectId))) {
-                    await _dockerClient.Images.BuildImageFromDockerfileAsync(
-                        config, tarStream, null, null,
-                        new Progress<JSONMessage>(msg => {
-                            image.Logs += $"[{DateTime.Now}] {msg.Stream}\n";
-                        }), cancelToken);
+                    using (var responseStream = await _dockerClient.Images.BuildImageFromDockerfileAsync(tarStream, config, cancelToken))
+                    using (var responseReader = new StreamReader(responseStream)) {
+                        while(!responseReader.EndOfStream && !cancelToken.IsCancellationRequested) {
+                            string? output = await responseReader.ReadLineAsync();
+                            if(!String.IsNullOrEmpty(output)) {
+                                image.Logs += Regex.Replace(Regex.Replace(output, @"[{}\\n]+", ""), @"\\(.)", "$1").Replace(@"\u003e", ">");
+                            }
+                        }
+                    }
                     if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
 
                     image.Logs += $"[{DateTime.Now}] Exiting Building\n";
@@ -99,7 +108,7 @@ namespace ContainerHive.Core.Services {
         private Stream CreateTarFileForDockerfileDirectory(string directory) {
             var stream = new MemoryStream();
             var filePaths = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
-
+            logger.LogInformation(filePaths.ToString());
             using(var archive = new TarOutputStream(stream, Encoding.UTF8)) {
                 archive.IsStreamOwner = false;
 

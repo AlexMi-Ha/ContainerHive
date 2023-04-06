@@ -21,4 +21,5 @@ RUN dotnet publish "ContainerHive.Mvc.csproj" -c Release -o /app/publish /p:UseA
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+RUN apt-get update && apt-get install -y git
 ENTRYPOINT ["dotnet", "ContainerHive.Mvc.dll"]

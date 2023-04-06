@@ -36,7 +36,8 @@ namespace ContainerHive.Core.Services {
                 Deployment = deployment,
                 DeploymentId = deployment.DeploymentId,
                 BuidStatus = Status.BUILDING,
-                Created = DateTime.Now
+                Created = DateTime.Now,
+                Logs = string.Empty
             };
             await _dbContext.ImageBuilds.AddAsync(image);
             await _dbContext.SaveChangesAsync(cancelToken);

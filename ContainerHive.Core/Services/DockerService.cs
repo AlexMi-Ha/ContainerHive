@@ -262,6 +262,7 @@ namespace ContainerHive.Core.Services {
             try {
                 foreach (var container in containers) {
                     succ = succ && await _dockerClient.Containers.StopContainerAsync(container.ID, config, cancelToken);
+                    await _dockerClient.Containers.RemoveContainerAsync(container.ID, new ContainerRemoveParameters(), cancelToken);
                     if (cancelToken.IsCancellationRequested)
                         return false;
                 }
@@ -315,7 +316,7 @@ namespace ContainerHive.Core.Services {
                 Image = image.ImageId,
                 HostConfig = new HostConfig {
                     PortBindings = new Dictionary<string, IList<PortBinding>> {
-                        { deployment.EnvironmentPort.ToString(), new List<PortBinding> { new PortBinding { HostPort = deployment.HostPort.ToString() } } }
+                        { deployment.EnvironmentPort.ToString(), new List<PortBinding> { new PortBinding { HostIP="0.0.0.0", HostPort = deployment.HostPort.ToString() } } }
                     },
                     Binds = deployment.Mounts.Select(e => $"{Path.Combine(_repoPath,deployment.ProjectId,e.HostPath)}:{e.EnvironmentPath}").ToList()
                 },

@@ -82,6 +82,7 @@ namespace ContainerHive.Core.Services {
             }
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
             if (res.Count != 1) {
+                image.Logs += $"[{DateTime.Now}] Could not find the corresponding image\n";
                 image.BuidStatus = Status.FAILED;
                 await _dbContext.SaveChangesAsync();
                 return new DockerImageNotFoundException(System.Net.HttpStatusCode.BadRequest, "Found multiple or no Images after build. Did the Build fail or was the old image not pruned?");

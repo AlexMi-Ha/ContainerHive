@@ -232,7 +232,7 @@ namespace ContainerHive.Core.Services {
             if (cancelToken.IsCancellationRequested) return false;
             var dbRes = await _dbContext.ImageBuilds.Include(e => e.Deployment).Where(e => e.Deployment.ProjectId.Equals(projId)).ExecuteDeleteAsync();
             await _dbContext.SaveChangesAsync();
-            return dockerRes != null && dockerRes.ImagesDeleted.Count > 0 && dbRes > 0;
+            return dockerRes != null;
         }
 
         public async Task<bool> PruneProcessesAsync(string projId, CancellationToken cancelToken) {
@@ -247,7 +247,7 @@ namespace ContainerHive.Core.Services {
             }catch(DockerApiException) { 
                 return false; 
             }
-            return res != null && res.ContainersDeleted?.Count > 0;
+            return res != null;
         }
 
         public async Task<Result<string>> RunImageAsync(ImageBuild image, Deployment deployment, CancellationToken cancelToken) {

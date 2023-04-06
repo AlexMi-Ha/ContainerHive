@@ -78,7 +78,6 @@ namespace ContainerHive.Core.Services {
             }
 
             var listConfig = new ImagesListParameters {
-                All = true,
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
                     {"label", new Dictionary<string ,bool> { { $"deployment={deployment.DeploymentId.ToLower()}", true } } }
                 }
@@ -91,7 +90,7 @@ namespace ContainerHive.Core.Services {
             }
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
             if (res.Count != 1) {
-                image.Logs += $"[{DateTime.Now}] Could not find the corresponding image\n";
+                image.Logs += $"[{DateTime.Now}] Could not find the corresponding image - Found {res.Count}\n";
                 image.BuidStatus = Status.FAILED;
                 await _dbContext.SaveChangesAsync();
                 return new DockerImageNotFoundException(System.Net.HttpStatusCode.BadRequest, "Found multiple or no Images after build. Did the Build fail or was the old image not pruned?");

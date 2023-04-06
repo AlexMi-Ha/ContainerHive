@@ -11,6 +11,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using Pomelo.EntityFrameworkCore.MySql.Query.Internal;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -85,12 +87,28 @@ app.UseAuthorization();
 app.UseStaticFiles();
 
 if(app.Environment.IsDevelopment()) {
-    app.MapGet("loginlel", async (HttpContext context) => {
-        await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(new ClaimsIdentity(new List<Claim> {
-                new Claim(ClaimTypes.Name, "Test"),
-                new Claim(ClaimTypes.Role, "Administrator"),
-            }, CookieAuthenticationDefaults.AuthenticationScheme)));
+    app.MapGet("loginlel", async (HttpContext context, IConfiguration _configuration) => {
+            var claims = new List<Claim> {
+            new Claim(ClaimTypes.Name, "Test"),
+            new Claim(ClaimTypes.Role, "Administrator"),
+        };
+        var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
+            expires: DateTime.Now.AddHours(12),
+            claims: claims,
+            signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
+            );
+
+        context.Response.Cookies.Append(_configuration["CookieAuth:Name"]!, new JwtSecurityTokenHandler().WriteToken(token), new CookieOptions {
+            SameSite = SameSiteMode.Lax,
+            Secure = true,
+            HttpOnly = true,
+            IsEssential = true,
+            Expires = DateTime.Now.AddDays(1)
+        });
         return "lel";
     });
 }

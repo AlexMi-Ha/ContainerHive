@@ -1,12 +1,12 @@
 ﻿@using ContainerHive.Core.Models
 @model List<Deployment>
 @{
-    ViewData["Title"] = Model.FirstOrDefault()?.Project.Name ?? "" + " - Deployments";
+    ViewData["Title"] = Model.FirstOrDefault()?.Project?.Name ?? "" + " - Deployments";
 }
 
 
 <div class="head">
-    <h1 class="title gold-highlight">@(Model.FirstOrDefault()?.Project.Name ?? "")</h1>
+    <h1 class="title gold-highlight">@(Model.FirstOrDefault()?.Project?.Name ?? "")</h1>
     <nav class="project-nav">
         <div class="nav-back">
             <a class="nav-link" asp-action="Index" asp-controller="Dashboard">

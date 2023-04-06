@@ -244,21 +244,30 @@ namespace ContainerHive.Core.Services {
             var res = await _dockerService.StopRunningContainersByProjectAsync(id, cancelToken);
             if(cancelToken.IsCancellationRequested)
                 return new OperationCanceledException();
-            if (!res) 
+            if (!res) {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
+                    logger.LogWarning("Failed to stop containers with projectID {id}!", id);
+                }
                 return new ProcessFailedException($"Failed to stop containers with projectID {id}!");
-
+            }
             res = await _dockerService.PruneProcessesAsync(id, cancelToken);
             if (cancelToken.IsCancellationRequested)
                 return new OperationCanceledException();
-            if (!res)
+            if (!res) {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
+                    logger.LogWarning("Failed to prune containers with projectID {id}!", id);
+                }
                 return new ProcessFailedException($"Failed to prune containers with projectID {id}!");
-
+            }
             res = await _dockerService.PruneImagesAsync(id, cancelToken);
             if (cancelToken.IsCancellationRequested)
                 return new OperationCanceledException();
-            if(!res)
+            if (!res) {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
+                    logger.LogWarning("Failed to prune images with projectID {id}!", id);
+                }
                 return new ProcessFailedException($"Failed to prune images with projectID {id}!");
-
+            }
             if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
                 logger.LogInformation("Finished killing Project with id {id}", id);
             }

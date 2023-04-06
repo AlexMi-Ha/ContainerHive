@@ -230,7 +230,8 @@ namespace ContainerHive.Core.Services {
                 return false; 
             }
             if (cancelToken.IsCancellationRequested) return false;
-            var dbRes = await _dbContext.ImageBuilds.Include(e => e.Deployment).Where(e => e.Deployment.ProjectId.Equals(projId)).ExecuteDeleteAsync();
+            var dbRes = await _dbContext.ImageBuilds.Include(e => e.Deployment).Where(e => e.Deployment.ProjectId.Equals(projId)).ToListAsync();
+            _dbContext.ImageBuilds.RemoveRange(dbRes);
             await _dbContext.SaveChangesAsync();
             return dockerRes != null;
         }

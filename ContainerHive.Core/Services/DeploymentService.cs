@@ -57,7 +57,8 @@ namespace ContainerHive.Core.Services {
             if(!stopResult)
                 return new ProcessFailedException($"Failed trying to Stop Running Containers");
 
-            await _dbContext.ImageBuilds.Where(e => e.DeploymentId == deployment.DeploymentId).ExecuteDeleteAsync();
+            var builds = await _dbContext.ImageBuilds.Where(e => e.DeploymentId == deployment.DeploymentId).ToListAsync();
+            _dbContext.ImageBuilds.RemoveRange(builds);
             _dbContext.Deployments.Remove(deployment);
             return await _dbContext.SaveChangesAsync() > 0;
         }

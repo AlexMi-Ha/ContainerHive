@@ -25,7 +25,7 @@ namespace ContainerHive.Core.Services {
 
         private readonly ApplicationDbContext _dbContext;
 
-        public DockerService(IDockerClient dockerClient, IConfiguration config, ApplicationDbContext dbContext, ILogger logger) {
+        public DockerService(IDockerClient dockerClient, IConfiguration config, ApplicationDbContext dbContext, ILogger<DockerService> logger) {
             _dockerClient = dockerClient!;
             _repoPath = config["RepoPath"]!;
             _dbContext = dbContext!;

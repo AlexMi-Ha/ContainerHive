@@ -29,8 +29,8 @@ namespace ContainerHive.Core.Services {
         public async Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment, CancellationToken cancelToken) {
             var config = new ImageBuildParameters {
                 Dockerfile = Path.Combine(_repoPath, deployment.ProjectId ,deployment.DockerPath),
-                Tags = new List<string> { $"project={deployment.ProjectId}", $"deployment={deployment.DeploymentId}" },
-                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId }, { "deployment", deployment.DeploymentId } }  
+                Tags = new List<string> { $"project={deployment.ProjectId.ToLower()}", $"deployment={deployment.DeploymentId.ToLower()}" },
+                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId.ToLower() }, { "deployment", deployment.DeploymentId.ToLower() } }  
             };
             var image = new ImageBuild {
                 Deployment = deployment,
@@ -67,7 +67,7 @@ namespace ContainerHive.Core.Services {
             var listConfig = new ImagesListParameters {
                 All = true,
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    {"label", new Dictionary<string ,bool> { { $"deployment={deployment.DeploymentId}", true } } }
+                    {"label", new Dictionary<string ,bool> { { $"deployment={deployment.DeploymentId.ToLower()}", true } } }
                 }
             };
             IList<ImagesListResponse> res;
@@ -95,7 +95,7 @@ namespace ContainerHive.Core.Services {
             var config = new ContainersListParameters {
                 All = true,
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    {"label", new Dictionary<string ,bool> { { $"project={projId}", true } } }
+                    {"label", new Dictionary<string ,bool> { { $"project={projId.ToLower()}", true } } }
                 }
             };
             try {
@@ -112,7 +112,7 @@ namespace ContainerHive.Core.Services {
             var config = new ContainersListParameters {
                 All = true,
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    {"label", new Dictionary<string ,bool> { { $"deployment={deploymentId}", true } } }
+                    {"label", new Dictionary<string ,bool> { { $"deployment={deploymentId.ToLower()}", true } } }
                 }
             };
             try {
@@ -220,7 +220,7 @@ namespace ContainerHive.Core.Services {
         public async Task<bool> PruneImagesAsync(string projId, CancellationToken cancelToken) {
             var config = new ImagesPruneParameters {
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    { "label", new Dictionary<string, bool> { { $"project={projId}", true } } },
+                    { "label", new Dictionary<string, bool> { { $"project={projId.ToLower()}", true } } },
                     { "dangling", new Dictionary<string, bool> { { "true", true} } }
                 }
             };
@@ -240,7 +240,7 @@ namespace ContainerHive.Core.Services {
         public async Task<bool> PruneProcessesAsync(string projId, CancellationToken cancelToken) {
             var config = new ContainersPruneParameters {
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    {"label", new Dictionary<string ,bool> { { $"project={projId}", true } } }
+                    {"label", new Dictionary<string ,bool> { { $"project={projId.ToLower()}", true } } }
                 }
             };
             ContainersPruneResponse res;
@@ -267,7 +267,7 @@ namespace ContainerHive.Core.Services {
                 },
                 Name = deployment.DeploymentId,
                 Env = deployment.EnvironmentVars.Select(e => $"{e.Key}={e.Value}").ToList(),
-                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId }, { "deployment", deployment.DeploymentId } },
+                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId.ToLower() }, { "deployment", deployment.DeploymentId.ToLower() } },
             };
             try {
                 var res = await _dockerClient.Containers.CreateContainerAsync(config, cancelToken);

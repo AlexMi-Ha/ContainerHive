@@ -112,7 +112,7 @@ namespace ContainerHive.Core.Services {
                 archive.IsStreamOwner = false;
 
                 foreach(var file in filePaths) {
-                    var relfile = Path.GetFileName(file);
+                    var relfile = Path.GetRelativePath(directory, file);
                     using(var inStream = new FileStream(file, FileMode.Open, FileAccess.Read)) {
                         var entry = TarEntry.CreateTarEntry(relfile);
                         entry.Size = inStream.Length;
@@ -316,7 +316,7 @@ namespace ContainerHive.Core.Services {
                 Image = image.ImageId,
                 HostConfig = new HostConfig {
                     PortBindings = new Dictionary<string, IList<PortBinding>> {
-                        { deployment.EnvironmentPort.ToString(), new List<PortBinding> { new PortBinding { HostIP="0.0.0.0", HostPort = deployment.HostPort.ToString() } } }
+                        { deployment.EnvironmentPort.ToString() + "/tcp", new List<PortBinding> { new PortBinding { HostIP="0.0.0.0", HostPort = deployment.HostPort.ToString() } } }
                     },
                     Binds = deployment.Mounts.Select(e => $"{Path.Combine(_repoPath,deployment.ProjectId,e.HostPath)}:{e.EnvironmentPath}").ToList()
                 },

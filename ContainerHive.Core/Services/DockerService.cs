@@ -112,7 +112,6 @@ namespace ContainerHive.Core.Services {
                 archive.IsStreamOwner = false;
 
                 foreach(var file in filePaths) {
-                    logger.LogInformation(file);
                     var relfile = Path.GetFileName(file);
                     using(var inStream = new FileStream(file, FileMode.Open, FileAccess.Read)) {
                         var entry = TarEntry.CreateTarEntry(relfile);
@@ -327,7 +326,14 @@ namespace ContainerHive.Core.Services {
                 var res = await _dockerClient.Containers.CreateContainerAsync(config, cancelToken);
                 if (cancelToken.IsCancellationRequested)
                     return new OperationCanceledException();
-                return res.ID;
+                if (String.IsNullOrWhiteSpace(res.ID))
+                    return new ApplicationException();
+
+                var startRes = await _dockerClient.Containers.StartContainerAsync(res.ID, new ContainerStartParameters(), cancelToken);
+                if (cancelToken.IsCancellationRequested)
+                    return new OperationCanceledException();
+
+                return startRes ? res.ID : new ApplicationException();
             }catch(DockerApiException ex) {
                 return ex;
             }

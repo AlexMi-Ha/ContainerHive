@@ -79,7 +79,7 @@ namespace ContainerHive.Core.Services {
 
             var listConfig = new ImagesListParameters {
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    {"label", new Dictionary<string ,bool> { { $"deployment={deployment.DeploymentId.ToLower()}", true } } }
+                    {"tag", new Dictionary<string ,bool> { { $"deployment:{deployment.DeploymentId.ToLower()}", true } } }
                 }
             };
             IList<ImagesListResponse> res;
@@ -89,7 +89,7 @@ namespace ContainerHive.Core.Services {
                 return ex;
             }
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
-            if (res.Count != 1) {
+            if (res.Count < 1) {
                 image.Logs += $"[{DateTime.Now}] Could not find the corresponding image - Found {res.Count}\n";
                 image.BuidStatus = Status.FAILED;
                 await _dbContext.SaveChangesAsync();

@@ -32,7 +32,7 @@ namespace ContainerHive.Core.Services {
             var validationRes = _projectValidator.Validate(project);
             if (!validationRes.IsValid)
                 return new ValidationException(validationRes.Errors);
-
+            project.LastUpdated = DateTime.Now;
             await _dbContext.Projects.AddAsync(project);
             if (await _dbContext.SaveChangesAsync() <= 0)
                 return new ApplicationException("Failed to add Project!");
@@ -43,7 +43,7 @@ namespace ContainerHive.Core.Services {
             var validationRes = _projectValidator.Validate(project);
             if (!validationRes.IsValid)
                 return new ValidationException(validationRes.Errors);
-
+            project.LastUpdated = DateTime.Now;
             _dbContext.Projects.Update(project);
             if (await _dbContext.SaveChangesAsync() <= 0)
                 return new ApplicationException("Failed to update Project!");
@@ -95,6 +95,9 @@ namespace ContainerHive.Core.Services {
 
         public async Task<Result<string>> RegenerateTokenAsync(string id) {
             var proj = await GetProjectAsync(id);
+            if(proj.IsFaulted) {
+                return new Result<string>(proj);
+            }
             if(proj.IsSuccess && !proj.Value.WebhookActive) {
                 return new ArgumentException($"The specified Project with id {id} has Webhooks disabled. Enable it to regenerate your Token!");            
             }
@@ -165,12 +168,26 @@ namespace ContainerHive.Core.Services {
 
 
         public async Task<Result<bool>> DeployAllAsync(string id, CancellationToken cancelToken) {
+            var buildsRunning = await _dbContext.ImageBuilds
+                    .Include(e => e.Deployment)
+                    .ThenInclude(e => e.Project)
+                    .Where(e => e.Deployment.ProjectId.Equals(id))
+                    .Where(e => e.BuidStatus == Status.BUILDING || e.BuidStatus == Status.UNKNOWN)
+                    .AnyAsync();
+            if(buildsRunning) {
+                logger.LogWarning("Duplicate Build was started for project {id}! Interrupting...", id);
+                return new DeploymentFailedException("Wait for build to finish");
+            }
+
             if(logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
                 logger.LogInformation("Started deploying Project with id {id}", id);
             }
 
             var killResult = await KillAllContainersAsync(id, cancelToken);
             if(killResult.IsFaulted || !killResult.Value) {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning)) {
+                    logger.LogWarning("Failed stopping and killing old Deployments");
+                }
                 return new DeploymentFailedException("Failed stopping and killing old Deployments", killResult);
             }
 
@@ -181,8 +198,12 @@ namespace ContainerHive.Core.Services {
             var gitResult = await _gitService.CloneOrPullProjectRepositoryAsync(projectResult.Value, cancelToken);
             if (cancelToken.IsCancellationRequested)
                 return new OperationCanceledException(cancelToken);
-            if (gitResult.IsFaulted)
+            if (gitResult.IsFaulted) {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning)) {
+                    logger.LogWarning("Unable to pull from Git Repo {url}",projectResult.Value.Repo.Url);
+                }
                 return new DeploymentFailedException("Unable to pull from Git Repo " + projectResult.Value.Repo.Url, gitResult);
+            }
 
             var deployments = await _deploymentService.GetDeploymentsByProjectIdAsync(id);
             if (deployments.Count() == 0)
@@ -199,6 +220,9 @@ namespace ContainerHive.Core.Services {
 
             foreach(var result in buildResults) {
                 if(result.IsFaulted || result.Value?.BuidStatus != Status.DONE || result.Value?.ImageId == null || result.Value?.Deployment == null) {
+                    if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning)) {
+                        logger.LogWarning("Some Builds failed!");
+                    }
                     return new DeploymentFailedException("Some Builds failed!", result);
                 }
             }
@@ -212,6 +236,9 @@ namespace ContainerHive.Core.Services {
             var runResults = await Task.WhenAll(runTasks);
             foreach(var result in runResults) {
                 if(result.IsFaulted) {
+                    if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning)) {
+                        logger.LogWarning("Failed Starting some containers!");
+                    }
                     return new DeploymentFailedException("Failed Starting some containers!", result);
                 }
             }
@@ -228,21 +255,30 @@ namespace ContainerHive.Core.Services {
             var res = await _dockerService.StopRunningContainersByProjectAsync(id, cancelToken);
             if(cancelToken.IsCancellationRequested)
                 return new OperationCanceledException();
-            if (!res) 
+            if (!res) {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
+                    logger.LogWarning("Failed to stop containers with projectID {id}!", id);
+                }
                 return new ProcessFailedException($"Failed to stop containers with projectID {id}!");
-
+            }
             res = await _dockerService.PruneProcessesAsync(id, cancelToken);
             if (cancelToken.IsCancellationRequested)
                 return new OperationCanceledException();
-            if (!res)
+            if (!res) {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
+                    logger.LogWarning("Failed to prune containers with projectID {id}!", id);
+                }
                 return new ProcessFailedException($"Failed to prune containers with projectID {id}!");
-
+            }
             res = await _dockerService.PruneImagesAsync(id, cancelToken);
             if (cancelToken.IsCancellationRequested)
                 return new OperationCanceledException();
-            if(!res)
+            if (!res) {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
+                    logger.LogWarning("Failed to prune images with projectID {id}!", id);
+                }
                 return new ProcessFailedException($"Failed to prune images with projectID {id}!");
-
+            }
             if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
                 logger.LogInformation("Finished killing Project with id {id}", id);
             }

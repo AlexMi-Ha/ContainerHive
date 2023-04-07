@@ -1,0 +1,14 @@
+﻿@model Project
+
+<div class="list-display-panel">
+    <div class="list-display-header">
+        <div class="title-header">
+            <a class="title green-highlight" asp-action="Index" asp-controller="Project" asp-route-id="@Model.ProjectId">@Model.Name</a>
+            <p class="subtitle">&lt;@Model.Repo.Branch &gt;</p>
+        </div>    
+    </div>
+    <div class="list-display-description">
+        <p>@Model.Description</p>
+        <p class="subsubtitle">Last Update @Model.LastUpdated.ToShortDateString()</p>
+    </div>
+</div>

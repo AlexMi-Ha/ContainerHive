@@ -1,0 +1,148 @@
+﻿@using ContainerHive.Core.Models
+@model Project
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="head">
+    <h1 class="title gold-highlight">@Model.Name</h1>
+    <nav class="project-nav">
+        <div class="nav-back">
+            <a class="nav-link" asp-action="Index" asp-controller="Dashboard">
+                <span class="icon ti ti-arrow-left"></span>&nbsp;Back
+            </a>
+        </div>
+        <a class="nav-link active" asp-action="Index" asp-controller="Project" asp-route-id="@Model.ProjectId">Project</a>
+        <a class="nav-link" asp-action="Deployments" asp-controller="Project" asp-route-id="@Model.ProjectId">Deployment Config</a>
+        <a class="nav-link">Builds</a>
+        <div class="nav-spacer">Backaasaaaa</div>
+    </nav>
+</div>
+
+<script defer>
+
+    let token = '@Model.ApiToken';
+
+    function deployAll() {
+        $.ajax({
+            type: 'POST',
+            url: '/webhooks/@Model.ProjectId/deploy',
+            data: { apiToken: token },
+            success: function () {
+                const snack = $('#snackbar');
+                snack.html('The Deployment pipeline was started!');
+                snack.css({ opacity: 1 })
+                setTimeout(() => { snack.css({ opacity: 0 }); }, 1000);
+            }
+        });
+    }
+
+    function killAll() {
+        $.ajax({
+            type: 'POST',
+            url: '/webhooks/@Model.ProjectId/kill',
+            data: { apiToken: token },
+            success: function () {
+                const snack = $('#snackbar');
+                snack.html('Started killing all running processes!');
+                snack.css({ opacity: 1 })
+                setTimeout(() => { snack.css({ opacity: 0 }); }, 1000);
+            }
+        });
+    }
+
+    function copyApiToken() {
+        navigator.clipboard.writeText(token);
+        const snack = $('#snackbar');
+        snack.html('Copied the Token!');
+        snack.css({ opacity: 1 })
+        setTimeout(() => { snack.css({ opacity: 0 }); }, 1000);
+    }
+
+    function resetApiToken() {
+        $.ajax({
+            type: 'POST',
+            url: '/project/@Model.ProjectId/api/resetToken',
+            success: function (e) {
+                token = e;
+                const snack = $('#snackbar');
+                snack.html('Reset the Token!');
+                snack.css({ opacity: 1 })
+                setTimeout(() => { snack.css({ opacity: 0 }); }, 1000);
+            }
+        });
+    }
+
+    function toggleWebhook(active) {
+        $.ajax({
+            type: 'POST',
+            url: '/project/@Model.ProjectId/api/togglewebhook',
+            data: { active: active },
+            success: function (e) {
+                if(active) {
+                    $('#webhook-container').html(`
+                        <h3 class="title green-highlight">Webhook</h3>
+                        <p>
+                            Api Token<br>
+                            <span class="subtitle icon ti ti-password-long"></span>
+                        </p>
+                        <button onclick="copyApiToken()" class="button smaller">Copy</button>
+                        <button onclick="resetApiToken()" class="button smaller">Reset Token</button>
+                        <br>
+                        <br>
+                        <button onclick="toggleWebhook(false)" class="button small button-red-highlight">Disable Webhook</button>
+                   `);
+                }else {
+                    $('#webhook-container').html(`
+                        <h3 class="title green-highlight">Webhook</h3>
+                        <button onclick="toggleWebhook(true)" class="button small button-red-highlight">Activate Webhook</button>
+                    `);
+                }
+            }
+        });
+    }
+
+
+</script>
+
+<div class="content">
+    <div class="content-panel">
+        <p><span class="icon ti ti-info-circle"></span> &nbsp;@Model.Description</p>
+    </div>
+
+    <div class="content-section">
+        <h3 class="title green-highlight">Deployment</h3>
+        <button onclick="deployAll()" class="button small button-green-highlight">Deploy All</button>&nbsp;&nbsp;
+        <button onclick="killAll()" class="button small button-red-highlight">Kill All</button>
+    </div>
+
+    @if(Model.WebhookActive) {
+        <div class="content-section" id="webhook-container">
+            <h3 class="title green-highlight">Webhook</h3>
+            <p>
+                Api Token<br>
+                <span class="subtitle icon ti ti-password-long"></span>
+            </p>
+            <button onclick="copyApiToken()" class="button smaller">Copy</button>
+            <button onclick="resetApiToken()" class="button smaller">Reset Token</button>
+            <br>
+            <br>
+            <button onclick="toggleWebhook(false)" class="button small button-red-highlight">Disable Webhook</button>
+        </div>
+    }else {
+        <div class="content-section" id="webhook-container">
+            <h3 class="title green-highlight">Webhook</h3>
+            <button onclick="toggleWebhook(true)" class="button small button-red-highlight">Activate Webhook</button>
+        </div>
+    }
+
+    <div class="content-section">
+        <h3 class="title green-highlight">Source</h3>
+        <p><span class="icon ti ti-code"></span>&nbsp;<a href="@Model.Repo.Url">@Model.Repo.Url</a></p>
+        <p class="subtitle">At Branch @Model.Repo.Branch</p>
+    </div>
+
+    <div id="snackbar">
+        Lorem Ipsum dolor sit amet
+    </div>
+</div>

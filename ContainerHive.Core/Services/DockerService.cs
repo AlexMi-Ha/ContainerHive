@@ -6,49 +6,63 @@ using ContainerHive.Core.Models;
 using ContainerHive.Core.Models.Docker;
 using Docker.DotNet;
 using Docker.DotNet.Models;
+using ICSharpCode.SharpZipLib.Tar;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ContainerHive.Core.Services {
     internal class DockerService : IDockerService {
 
         private readonly IDockerClient _dockerClient;
 
+        private readonly ILogger logger;
+
         private readonly string _repoPath;
 
         private readonly ApplicationDbContext _dbContext;
 
-        public DockerService(IDockerClient dockerClient, IConfiguration config, ApplicationDbContext dbContext) {
+        public DockerService(IDockerClient dockerClient, IConfiguration config, ApplicationDbContext dbContext, ILogger<DockerService> logger) {
             _dockerClient = dockerClient!;
             _repoPath = config["RepoPath"]!;
             _dbContext = dbContext!;
+            this.logger = logger;
         }
 
         public async Task<Result<ImageBuild>> BuildImageAsync(Deployment deployment, CancellationToken cancelToken) {
             var config = new ImageBuildParameters {
-                Dockerfile = Path.Combine(_repoPath, deployment.ProjectId ,deployment.DockerPath),
-                Tags = new List<string> { $"project={deployment.ProjectId}", $"deployment={deployment.DeploymentId}" },
-                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId }, { "deployment", deployment.DeploymentId } }  
+                Tags = new List<string> { $"deployment:{deployment.DeploymentId.ToLower()}" },
+                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId.ToLower() }, { "deployment", deployment.DeploymentId.ToLower() } } 
             };
             var image = new ImageBuild {
                 Deployment = deployment,
                 DeploymentId = deployment.DeploymentId,
                 BuidStatus = Status.BUILDING,
-                Created = DateTime.Now
+                Created = DateTime.Now,
+                Logs = string.Empty
             };
-            _dbContext.ImageBuilds.Update(image);
+            await _dbContext.ImageBuilds.AddAsync(image);
             await _dbContext.SaveChangesAsync(cancelToken);
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
             try {
-                using (var dockerFileStream = File.OpenRead(Path.Combine(_repoPath, deployment.ProjectId, deployment.DockerPath))) {
-                    await _dockerClient.Images.BuildImageFromDockerfileAsync(
-                        config, dockerFileStream, null, null,
-                        new Progress<JSONMessage>(msg => {
-                            image.Logs += $"[{DateTime.Now}] {msg.Stream}\n";
-                        }), cancelToken);
-                    if (cancelToken.IsCancellationRequested) return new OperationCanceledException(); 
+                using (var tarStream = await CreateTarFileForDockerfileDirectory(Path.Combine(_repoPath, deployment.ProjectId), cancelToken)) {
+                    using (var responseStream = await _dockerClient.Images.BuildImageFromDockerfileAsync(tarStream, config, cancelToken))
+                    using (var responseReader = new StreamReader(responseStream)) {
+                        while(!responseReader.EndOfStream && !cancelToken.IsCancellationRequested) {
+                            string? output = await responseReader.ReadLineAsync();
+                            if(!String.IsNullOrEmpty(output)) {
+                                image.Logs += Regex.Replace(Regex.Replace(output, @"[{}\n]+", ""), @"\\(.)", "$1").Replace(@"\u003e", ">") + "\n";
+                            }
+                        }
+                    }
+                    if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
+
+                    image.Logs += $"[{DateTime.Now}] Exiting Building\n";
+                    _dbContext.ImageBuilds.Update(image);
+                    await _dbContext.SaveChangesAsync(cancelToken);
                 }
             } catch (Exception ex) {
                 if (ex is not DockerApiException or IOException)
@@ -64,9 +78,8 @@ namespace ContainerHive.Core.Services {
             }
 
             var listConfig = new ImagesListParameters {
-                All = true,
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    {"label", new Dictionary<string ,bool> { { $"deployment={deployment.DeploymentId}", true } } }
+                    {"reference", new Dictionary<string ,bool> { { $"deployment:{deployment.DeploymentId.ToLower()}", true } } }
                 }
             };
             IList<ImagesListResponse> res;
@@ -76,7 +89,8 @@ namespace ContainerHive.Core.Services {
                 return ex;
             }
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
-            if (res.Count != 1) {
+            if (res.Count < 1) {
+                image.Logs += $"[{DateTime.Now}] Could not find the corresponding image - Found {res.Count}\n";
                 image.BuidStatus = Status.FAILED;
                 await _dbContext.SaveChangesAsync();
                 return new DockerImageNotFoundException(System.Net.HttpStatusCode.BadRequest, "Found multiple or no Images after build. Did the Build fail or was the old image not pruned?");
@@ -90,11 +104,51 @@ namespace ContainerHive.Core.Services {
             return cancelToken.IsCancellationRequested ? new OperationCanceledException() : image;
         }
 
+        private async Task<Stream> CreateTarFileForDockerfileDirectory(string directory, CancellationToken cancelToken) {
+            var stream = new MemoryStream();
+            
+            var filePaths = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
+            using(var archive = new TarOutputStream(stream, Encoding.UTF8)) {
+                archive.IsStreamOwner = false;
+
+                foreach(var file in filePaths) {
+                    var relfile = Path.GetRelativePath(directory, file);
+                    using(var inStream = new FileStream(file, FileMode.Open, FileAccess.Read)) {
+                        var entry = TarEntry.CreateTarEntry(relfile);
+                        entry.Size = inStream.Length;
+
+                        await archive.PutNextEntryAsync(entry, cancelToken).ConfigureAwait(false);
+                        if(cancelToken.IsCancellationRequested) {
+                            stream.Position = 0;
+                            return stream;
+                        }
+
+                        await inStream.CopyToAsync(archive, 4096, cancelToken).ConfigureAwait(false);
+                        if (cancelToken.IsCancellationRequested) {
+                            stream.Position = 0;
+                            return stream;
+                        }
+
+                        await archive.CloseEntryAsync(cancelToken).ConfigureAwait(false);
+                        if (cancelToken.IsCancellationRequested) {
+                            stream.Position = 0;
+                            return stream;
+                        }
+                    }
+                }
+
+                archive.Close();
+
+                stream.Position = 0;
+                return stream;
+            }
+        }
+
         public async Task<Result<IEnumerable<ContainerListResponse>>> GetAllContainersForProjectAsync(string projId, CancellationToken cancelToken) {
             var config = new ContainersListParameters {
                 All = true,
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    {"label", new Dictionary<string ,bool> { { $"project={projId}", true } } }
+                    {"label", new Dictionary<string ,bool> { { $"project={projId.ToLower()}", true } } }
                 }
             };
             try {
@@ -111,7 +165,7 @@ namespace ContainerHive.Core.Services {
             var config = new ContainersListParameters {
                 All = true,
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    {"label", new Dictionary<string ,bool> { { $"deployment={deploymentId}", true } } }
+                    {"label", new Dictionary<string ,bool> { { $"deployment={deploymentId.ToLower()}", true } } }
                 }
             };
             try {
@@ -187,7 +241,8 @@ namespace ContainerHive.Core.Services {
                 return false;
             if (cancelToken.IsCancellationRequested)
                 return false;
-            return await StopContainersAsync(containersResult.Value, cancelToken);
+            await StopContainersAsync(containersResult.Value, cancelToken);
+            return true;
         }
 
         public async Task<bool> StopRunningContainersByDeploymentIdAsync(string deploymentId, CancellationToken cancelToken) {
@@ -207,6 +262,7 @@ namespace ContainerHive.Core.Services {
             try {
                 foreach (var container in containers) {
                     succ = succ && await _dockerClient.Containers.StopContainerAsync(container.ID, config, cancelToken);
+                    await _dockerClient.Containers.RemoveContainerAsync(container.ID, new ContainerRemoveParameters(), cancelToken);
                     if (cancelToken.IsCancellationRequested)
                         return false;
                 }
@@ -219,7 +275,7 @@ namespace ContainerHive.Core.Services {
         public async Task<bool> PruneImagesAsync(string projId, CancellationToken cancelToken) {
             var config = new ImagesPruneParameters {
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    { "label", new Dictionary<string, bool> { { $"project={projId}", true } } },
+                    { "label", new Dictionary<string, bool> { { $"project={projId.ToLower()}", true } } },
                     { "dangling", new Dictionary<string, bool> { { "true", true} } }
                 }
             };
@@ -230,15 +286,16 @@ namespace ContainerHive.Core.Services {
                 return false; 
             }
             if (cancelToken.IsCancellationRequested) return false;
-            var dbRes = await _dbContext.ImageBuilds.Include(e => e.Deployment).Where(e => e.Deployment.ProjectId.Equals(projId)).ExecuteDeleteAsync();
+            var dbRes = await _dbContext.ImageBuilds.Include(e => e.Deployment).Where(e => e.Deployment.ProjectId.Equals(projId)).ToListAsync();
+            _dbContext.ImageBuilds.RemoveRange(dbRes);
             await _dbContext.SaveChangesAsync();
-            return dockerRes != null && dockerRes.ImagesDeleted.Count > 0 && dbRes > 0;
+            return dockerRes != null;
         }
 
         public async Task<bool> PruneProcessesAsync(string projId, CancellationToken cancelToken) {
             var config = new ContainersPruneParameters {
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    {"label", new Dictionary<string ,bool> { { $"project={projId}", true } } }
+                    {"label", new Dictionary<string ,bool> { { $"project={projId.ToLower()}", true } } }
                 }
             };
             ContainersPruneResponse res;
@@ -247,7 +304,7 @@ namespace ContainerHive.Core.Services {
             }catch(DockerApiException) { 
                 return false; 
             }
-            return res != null && res.ContainersDeleted.Count > 0;
+            return res != null;
         }
 
         public async Task<Result<string>> RunImageAsync(ImageBuild image, Deployment deployment, CancellationToken cancelToken) {
@@ -259,19 +316,26 @@ namespace ContainerHive.Core.Services {
                 Image = image.ImageId,
                 HostConfig = new HostConfig {
                     PortBindings = new Dictionary<string, IList<PortBinding>> {
-                        { deployment.EnvironmentPort.ToString(), new List<PortBinding> { new PortBinding { HostPort = deployment.HostPort.ToString() } } }
+                        { deployment.EnvironmentPort.ToString() + "/tcp", new List<PortBinding> { new PortBinding { HostIP="0.0.0.0", HostPort = deployment.HostPort.ToString() } } }
                     },
                     Binds = deployment.Mounts.Select(e => $"{Path.Combine(_repoPath,deployment.ProjectId,e.HostPath)}:{e.EnvironmentPath}").ToList()
                 },
                 Name = deployment.DeploymentId,
                 Env = deployment.EnvironmentVars.Select(e => $"{e.Key}={e.Value}").ToList(),
-                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId }, { "deployment", deployment.DeploymentId } },
+                Labels = new Dictionary<string, string> { { "project", deployment.ProjectId.ToLower() }, { "deployment", deployment.DeploymentId.ToLower() } },
             };
             try {
                 var res = await _dockerClient.Containers.CreateContainerAsync(config, cancelToken);
                 if (cancelToken.IsCancellationRequested)
                     return new OperationCanceledException();
-                return res.ID;
+                if (String.IsNullOrWhiteSpace(res.ID))
+                    return new ApplicationException();
+
+                var startRes = await _dockerClient.Containers.StartContainerAsync(res.ID, new ContainerStartParameters(), cancelToken);
+                if (cancelToken.IsCancellationRequested)
+                    return new OperationCanceledException();
+
+                return startRes ? res.ID : new ApplicationException();
             }catch(DockerApiException ex) {
                 return ex;
             }

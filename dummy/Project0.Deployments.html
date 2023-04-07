@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - ContainerHive</title>
+    <link rel="stylesheet" href="icons.css" />
+    <link href='http://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="site.css" />
+    <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
+    <script>
+        class Project {
+            constructor(id, name, desc, deploy, webhook = true) {
+                this.ProjectId = id; 
+                this.Name = name;
+                this.Description = desc;
+                this.LastUpdated = new Date();
+                this.WebhookActive = webhook;
+                this.Deployments=deploy
+                this.ApiToken = "asdawdwdadsdwd"
+                this.Repo = { Url: "https://github.com/AlexMiHa/TestRepo.lel", Branch: "main"};
+            }
+        }
+        class Deployment {
+            constructor(id, dockerpath) {
+                this.DeploymentId = id;
+                this.DockerPath = dockerpath;
+                this.HostPort = 80;
+                this.EnvironmentPort = 3000;
+
+                this.EnvironmentVars = [{Key:"SECRET", Value:"Lel"}, {Key:"Test", Value:"Test1Value"}];
+                this.Mounts = [{HostPath:"/content", EnvironmentPath:"/env/content"}, {HostPath: "/keys", EnvironmentPath: "/val/keys"}];
+            }
+        }
+
+        const deploys = [
+            new Deployment("1641e470ee2baac6628de94901c38190", "./Api/Dockerfile"),
+            new Deployment("5f741fd798c67fc89ceec8dd154ad0f4", "./Core/Dockerfile")
+        ]
+        const proj = new Project(0, "TestProj0", "Lorem ipsum dolor sit amet example description lel was geht ab bro.", deploys);
+
+        $(() => {
+            const list = $('#deployments-list');
+            for(const deploy of proj.Deployments) {
+                let env_vars = '';
+                for(const env of deploy.EnvironmentVars) {
+                    env_vars +=
+                        `
+                        <p>${env.Key}=${env.Value}</p>
+                        `;
+                }
+                let mounts = '';
+                for(const mount of deploy.Mounts) {
+                    mounts +=
+                        `
+                        <p>${mount.HostPath}&nbsp;&nbsp;&rightleftarrows;&nbsp;&nbsp;${mount.EnvironmentPath}</p>
+                        `;
+                }
+
+                list.append(
+                    `
+                        <div class="content-section border-section-divider">
+                            <h3 class="title green-highlight">${deploy.DockerPath}&nbsp;&nbsp;<span class="subtitle smaller">${deploy.HostPort}:${deploy.EnvironmentPort}</span>
+                                <br>
+                                <span class="subtitle x-small">${deploy.DeploymentId}</span>
+                            </h3>
+                            <div class="deployment-tables">
+                                <div class="env-vars-table">
+                                    <h4 class="title gold-highlight">Environment</h4>
+                                    ${env_vars}
+                                </div>
+                                <div class="mounts-table">
+                                    <h4 class="title gold-highlight">Mounts</h4>
+                                    ${mounts}
+                                </div>
+                            </div>
+                            <div class="deployment-actions">
+                                <button class="button">Edit</button>    
+                                <button class="button button-red-highlight">Delete</button>    
+                            </div>
+                        </div>
+                    `
+                );
+            }
+        });
+
+        </script>
+</head>
+<body>
+    <article id="main-container">
+        <div class="head">
+            <h1 class="title gold-highlight">@Model.Name</h1>
+            <nav class="project-nav">
+                <div class="nav-back">
+                    <a class="nav-link" href="Dashboard.html">
+                        <span class="icon ti ti-arrow-left"></span>&nbsp;Back
+                    </a>
+                </div>
+                <a class="nav-link" href="Project0.html">Project</a>
+                <a class="nav-link active" href="Project0.Deployments.html">Deployment Config</a>
+                <a class="nav-link">Builds</a>
+                <div class="nav-spacer">Backaasaaaa</div>
+            </nav>
+        </div>
+        <div class="content">
+            <div class="add-deployment-action">
+                <span class="icon ti ti-plus"></span>
+                <a href="add">Add Deployment...</a>
+            </div>
+            <div id="deployments-list"></div>
+        </div>
+    </article>
+</body>
+</html>

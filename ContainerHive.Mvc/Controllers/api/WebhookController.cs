@@ -1,9 +1,9 @@
 ﻿using ContainerHive.Core.Common.Exceptions;
 using ContainerHive.Core.Common.Interfaces;
-using ContainerHive.Workers;
+using ContainerHive.Mvc.Workers;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ContainerHive.Controllers {
+namespace ContainerHive.Mvc.Controllers.api {
 
     [Route("webhooks")]
     [ApiController]
@@ -19,11 +19,11 @@ namespace ContainerHive.Controllers {
 
         [HttpPost]
         [Route("{id}/deploy")]
-        public async Task<IActionResult> DeployAllTask([FromRoute] string id, [FromBody] string apiToken) {
+        public async Task<IActionResult> DeployAllTask([FromRoute] string id, [FromForm] string apiToken) {
             var cmpRes = await _projectService.CompareApiKeyAsync(id, apiToken);
             return cmpRes.Match<IActionResult>(
                 succ => {
-                    _backgroundWorkerQueue.QueueBackgroundItem(async token => await _projectService.DeployAllAsync(id, token));
+                    _backgroundWorkerQueue.QueueBackgroundItem(async (projService, token) => await projService.DeployAllAsync(id, token));
                     return Accepted();
                 },
                 err => {
@@ -40,11 +40,11 @@ namespace ContainerHive.Controllers {
 
         [HttpPost]
         [Route("{id}/kill")]
-        public async Task<IActionResult> KillAllTask([FromRoute] string id, [FromBody] string apiToken) {
+        public async Task<IActionResult> KillAllTask([FromRoute] string id, [FromForm] string apiToken) {
             var cmpRes = await _projectService.CompareApiKeyAsync(id, apiToken);
             return cmpRes.Match<IActionResult>(
                 succ => {
-                    _backgroundWorkerQueue.QueueBackgroundItem(async token => await _projectService.KillAllContainersAsync(id, token));
+                    _backgroundWorkerQueue.QueueBackgroundItem(async (projService, token) => await projService.KillAllContainersAsync(id, token));
                     return Accepted();
                 },
                 err => {

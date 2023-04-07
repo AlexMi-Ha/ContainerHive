@@ -86,7 +86,10 @@ app.UseAuthorization();
 
 app.UseStaticFiles();
 
-if(app.Environment.IsDevelopment()) {
+/*if(app.Environment.IsDevelopment()) {
+
+    // ONLY FOR TESTING
+
     app.MapGet("loginlel", async (HttpContext context, IConfiguration _configuration) => {
             var claims = new List<Claim> {
             new Claim(ClaimTypes.Name, "Test"),
@@ -111,7 +114,7 @@ if(app.Environment.IsDevelopment()) {
         });
         return "lel";
     });
-}
+}*/
 
 app.MapControllerRoute(
     name: "default",

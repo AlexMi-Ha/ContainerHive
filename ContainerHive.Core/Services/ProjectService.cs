@@ -32,7 +32,7 @@ namespace ContainerHive.Core.Services {
             var validationRes = _projectValidator.Validate(project);
             if (!validationRes.IsValid)
                 return new ValidationException(validationRes.Errors);
-
+            project.LastUpdated = DateTime.Now;
             await _dbContext.Projects.AddAsync(project);
             if (await _dbContext.SaveChangesAsync() <= 0)
                 return new ApplicationException("Failed to add Project!");
@@ -43,7 +43,7 @@ namespace ContainerHive.Core.Services {
             var validationRes = _projectValidator.Validate(project);
             if (!validationRes.IsValid)
                 return new ValidationException(validationRes.Errors);
-
+            project.LastUpdated = DateTime.Now;
             _dbContext.Projects.Update(project);
             if (await _dbContext.SaveChangesAsync() <= 0)
                 return new ApplicationException("Failed to update Project!");

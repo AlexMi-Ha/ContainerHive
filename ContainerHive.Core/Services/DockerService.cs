@@ -79,7 +79,7 @@ namespace ContainerHive.Core.Services {
 
             var listConfig = new ImagesListParameters {
                 Filters = new Dictionary<string, IDictionary<string, bool>> {
-                    {"tag", new Dictionary<string ,bool> { { $"deployment:{deployment.DeploymentId.ToLower()}", true } } }
+                    {"reference", new Dictionary<string ,bool> { { $"deployment:{deployment.DeploymentId.ToLower()}", true } } }
                 }
             };
             IList<ImagesListResponse> res;

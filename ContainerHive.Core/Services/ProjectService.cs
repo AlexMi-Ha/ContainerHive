@@ -168,6 +168,9 @@ namespace ContainerHive.Core.Services {
 
 
         public async Task<Result<bool>> DeployAllAsync(string id, CancellationToken cancelToken) {
+
+            // Remove Images from database
+
             var buildsRunning = await _dbContext.ImageBuilds
                     .Include(e => e.Deployment)
                     .ThenInclude(e => e.Project)
@@ -182,19 +185,22 @@ namespace ContainerHive.Core.Services {
             if(logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
                 logger.LogInformation("Started deploying Project with id {id}", id);
             }
-
-            var killResult = await KillAllContainersAsync(id, cancelToken);
-            if(killResult.IsFaulted || !killResult.Value) {
+            
+            // Prune old images
+            var pruneImageResult = await PruneImagesAsync(id, cancelToken);
+            if (pruneImageResult.IsFaulted || !pruneImageResult.Value) {
                 if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning)) {
                     logger.LogWarning("Failed stopping and killing old Deployments");
                 }
-                return new DeploymentFailedException("Failed stopping and killing old Deployments", killResult);
+                return new DeploymentFailedException("Failed stopping and killing old Deployments", pruneImageResult);
             }
+
 
             var projectResult = await GetProjectAsync(id);
             if (projectResult.IsFaulted || projectResult.Value == null)
                 return new RecordNotFoundException("Did not find the project with the id " + id, projectResult);
 
+            // Clone
             var gitResult = await _gitService.CloneOrPullProjectRepositoryAsync(projectResult.Value, cancelToken);
             if (cancelToken.IsCancellationRequested)
                 return new OperationCanceledException(cancelToken);
@@ -209,6 +215,7 @@ namespace ContainerHive.Core.Services {
             if (deployments.Count() == 0)
                 return new RecordNotFoundException("Could not find deployments in the project with id " + id);
 
+            // Build
             List<Task<Result<ImageBuild>>> buildTasks = new();
             foreach (var deployment in deployments) {
                 buildTasks.Add(_dockerService.BuildImageAsync(deployment, cancelToken));
@@ -227,6 +234,21 @@ namespace ContainerHive.Core.Services {
                 }
             }
             // All builds where successful
+
+            //Stop running container
+            var stopandpruneRes = await StopAndPruneProcessesAsync(id, cancelToken);
+            if (stopandpruneRes.IsFaulted || !stopandpruneRes.Value) {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning)) {
+                    logger.LogWarning("Failed stopping and killing old Deployments");
+                }
+                return new DeploymentFailedException("Failed stopping and killing old Deployments", pruneImageResult);
+            }
+            if (cancelToken.IsCancellationRequested) {
+                return new OperationCanceledException();
+            }
+
+            // Run new containers
+
             List<Task<Result<string>>> runTasks = new();
             foreach(var image in buildResults.Select(e => e.Value)) {
                 runTasks.Add(_dockerService.RunImageAsync(image, image.Deployment!, cancelToken));
@@ -248,12 +270,10 @@ namespace ContainerHive.Core.Services {
             }
             return true;
         }
-        public async Task<Result<bool>> KillAllContainersAsync(string id, CancellationToken cancelToken) {
-            if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
-                logger.LogInformation("Started killing Project with id {id}", id);
-            }
+
+        private async Task<Result<bool>> StopAndPruneProcessesAsync(string id, CancellationToken cancelToken) {
             var res = await _dockerService.StopRunningContainersByProjectAsync(id, cancelToken);
-            if(cancelToken.IsCancellationRequested)
+            if (cancelToken.IsCancellationRequested)
                 return new OperationCanceledException();
             if (!res) {
                 if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
@@ -270,7 +290,12 @@ namespace ContainerHive.Core.Services {
                 }
                 return new ProcessFailedException($"Failed to prune containers with projectID {id}!");
             }
-            res = await _dockerService.PruneImagesAsync(id, cancelToken);
+
+            return true;
+        }
+
+        private async Task<Result<bool>> PruneImagesAsync(string id, CancellationToken cancelToken) {
+            var res = await _dockerService.PruneImagesAsync(id, cancelToken);
             if (cancelToken.IsCancellationRequested)
                 return new OperationCanceledException();
             if (!res) {
@@ -279,6 +304,30 @@ namespace ContainerHive.Core.Services {
                 }
                 return new ProcessFailedException($"Failed to prune images with projectID {id}!");
             }
+            return true;
+        }
+
+        public async Task<Result<bool>> KillAllContainersAsync(string id, CancellationToken cancelToken) {
+            if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
+                logger.LogInformation("Started killing Project with id {id}", id);
+            }
+
+            var res = await StopAndPruneProcessesAsync(id, cancelToken);
+            if(res.IsFaulted) {
+                return res;
+            }
+            if(cancelToken.IsCancellationRequested) {
+                return new OperationCanceledException();
+            }
+
+            res = await PruneImagesAsync(id, cancelToken);
+            if (res.IsFaulted) {
+                return res;
+            }
+            if (cancelToken.IsCancellationRequested) {
+                return new OperationCanceledException();
+            }
+
             if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information)) {
                 logger.LogInformation("Finished killing Project with id {id}", id);
             }

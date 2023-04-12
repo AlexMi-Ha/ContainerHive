@@ -181,6 +181,7 @@ namespace ContainerHive.Core.Services {
         public async Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId) {
             return await _dbContext.ImageBuilds
                 .Include(e => e.Deployment)
+                .ThenInclude(e => e.Project)
                 .Where(e => e.Deployment.ProjectId.Equals(projId))
                 .ToListAsync();
         }

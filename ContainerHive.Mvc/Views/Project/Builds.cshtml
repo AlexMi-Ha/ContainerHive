@@ -1,0 +1,34 @@
+﻿@using ContainerHive.Mvc.Models
+@model BuildsViewModel
+@{
+    ViewData["Title"] = Model.Builds?.FirstOrDefault()?.Deployment?.Project?.Name ?? "" + " - Builds";
+}
+
+
+<div class="head">
+    <h1 class="title gold-highlight">@(Model.Builds?.FirstOrDefault()?.Deployment?.Project?.Name ?? "")</h1>
+    <nav class="project-nav">
+        <div class="nav-back">
+            <a class="nav-link" asp-action="Index" asp-controller="Dashboard">
+                <span class="icon ti ti-arrow-left"></span>&nbsp;Back
+            </a>
+        </div>
+        <a class="nav-link" asp-action="Index" asp-controller="Project" asp-route-id="@ViewData["id"]">Project</a>
+        <a class="nav-link" asp-action="Deployments" asp-controller="Project" asp-route-id="@ViewData["id"]">Deployment Config</a>
+        <a class="nav-link active" asp-action="Builds" asp-controller="Project" asp-route-id="@ViewData["id"]">Builds</a>
+        <div class="nav-spacer">Backaasaaaa</div>
+    </nav>
+</div>
+<div class="content">
+    <div class="content-section" id="builds-list">
+        @foreach (var builds in Model.Builds) {
+            <partial name="_BuildPanel.cshtml" model="builds" />
+        }
+    </div>
+
+    <div class="content-section" id="container-list">
+        @foreach (var containers in Model.ContainerList) {
+            <partial name="_ContainerPanel.cshtml" model="containers" />
+        }
+    </div>
+</div>

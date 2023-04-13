@@ -59,6 +59,20 @@ namespace ContainerHive.Mvc.Controllers {
         }
 
 
+        [Route("{id}/api/containers/{containerId}/logs")]
+        [HttpGet]
+        public async Task<IActionResult> GetContainerLogs([FromRoute]string containerId, CancellationToken cancelToken) {
+            var res = await _dockerService.GetContainerLogsAsync(containerId, cancelToken);
+            return res.Match<IActionResult>(
+                Ok,
+                err => {
+                    if (err is RecordNotFoundException)
+                        return NotFound();
+                    return StatusCode(500, err.Message);
+                }
+            );
+        }
+
         [Route("{id}/api/resetToken")]
         [HttpPost]
         public async Task<IActionResult> ResetToken([FromRoute] string id) { 

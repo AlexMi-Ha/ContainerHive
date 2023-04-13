@@ -3,5 +3,22 @@
 
 
 <div class="border-section-divider">
-    @Model.
+    <div class="card-content-flex">
+        <div>
+            <h4 class="title">@Model.DeploymentId <br><span class="subtitle">@Model.ImageId</span></h4>
+            <p class="subsubtitle">Build at @Model.Created.ToString()</p>
+        </div>
+        <div>
+            @if(Model.BuidStatus == Status.DONE) {
+                <p class='green-highlight'>Done</p>
+            }else if(Model.BuidStatus == Status.BUILDING) {
+                <p class='gold-highlight'>Building</p>
+            }else if(Model.BuidStatus == Status.FAILED) {
+                <p class='red-highlight'>Failed</p>
+            }else {
+                <p>Build Status Unknown</p>
+            }
+            <button onclick="openModal('@Model.Logs.Replace("\n", "<br>")')" class="button">Logs</button>
+        </div>
+    </div>
 </div>

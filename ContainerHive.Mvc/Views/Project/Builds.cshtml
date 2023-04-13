@@ -78,7 +78,7 @@
             <div class="loader"></div>
         `)
         logsRequest = $.get(`/project/@ViewData["id"]/api/containers/${containerId}/logs`, e => {
-            setModalHtml(`<p>${e}</p>`);
+            setModalHtml(`<p>${e.replaceAll('\n', '<br>')}</p>`);
         });
     }
 </script>

@@ -14,7 +14,7 @@
         </div>
         <a class="nav-link active" asp-action="Index" asp-controller="Project" asp-route-id="@Model.ProjectId">Project</a>
         <a class="nav-link" asp-action="Deployments" asp-controller="Project" asp-route-id="@Model.ProjectId">Deployment Config</a>
-        <a class="nav-link">Builds</a>
+        <a class="nav-link" asp-action="Builds" asp-controller="Project" asp-route-id="@ViewData["id"]">Builds</a>
         <div class="nav-spacer">Backaasaaaa</div>
     </nav>
 </div>

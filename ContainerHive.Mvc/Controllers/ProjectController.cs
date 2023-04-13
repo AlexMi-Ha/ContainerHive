@@ -1,5 +1,6 @@
 ﻿using ContainerHive.Core.Common.Exceptions;
 using ContainerHive.Core.Common.Interfaces;
+using ContainerHive.Mvc.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +11,12 @@ namespace ContainerHive.Mvc.Controllers {
 
         private readonly IDeploymentService _deploymentService;
         private readonly IProjectService _projectService;
+        private readonly IDockerService _dockerService;
 
-        public ProjectController(IProjectService projectService, IDeploymentService deploymentService) {
+        public ProjectController(IProjectService projectService, IDeploymentService deploymentService, IDockerService dockerService) {
             _projectService = projectService!;
             _deploymentService = deploymentService!;
+            _dockerService = dockerService;
         }
 
         [Route("{id}")]
@@ -35,6 +38,40 @@ namespace ContainerHive.Mvc.Controllers {
             return View(res);
         }
 
+        [Route("{id}/builds")]
+        [HttpGet]
+        public async Task<IActionResult> Builds([FromRoute]string id, CancellationToken cancelToken) {
+            ViewData["id"] = id;
+            BuildsViewModel vm = new();
+            var containerRes = await _dockerService.GetAllContainersForProjectAsync(id, cancelToken);
+            containerRes.IfSucc(vm.ContainerList.AddRange);
+
+            if(containerRes.IsFaulted) {
+                return NotFound(((Exception)containerRes).Message);
+            }
+
+            var imageRes = await _dockerService.GetAllImagesForProjectAsync(id);
+            if(imageRes != null) {
+                vm.Builds.AddRange(imageRes);
+            }
+
+            return View(vm);
+        }
+
+
+        [Route("{id}/api/containers/{containerId}/logs")]
+        [HttpGet]
+        public async Task<IActionResult> GetContainerLogs([FromRoute]string containerId, CancellationToken cancelToken) {
+            var res = await _dockerService.GetContainerLogsAsync(containerId, cancelToken);
+            return res.Match<IActionResult>(
+                Ok,
+                err => {
+                    if (err is RecordNotFoundException)
+                        return NotFound();
+                    return StatusCode(500, err.Message);
+                }
+            );
+        }
 
         [Route("{id}/api/resetToken")]
         [HttpPost]

@@ -1,0 +1,16 @@
+﻿@using Docker.DotNet.Models
+@model ContainerListResponse
+
+<div class="border-section-divider">
+    <div class="card-content-flex three-col">
+        <div>
+            <h4 class="title">@Model.ID <br><span class="subtitle">@Model.ImageID</span></h4>
+            <p class="subsubtitle">Created at @Model.Created</p>
+        </div>
+        <p class="card-middle-section">@Model.Command <br><br> @Model.Status</p>
+        <div>
+            <p>@Model.State</p>
+            <button class="button" onclick="getLogs('@Model.ID')">Logs</button>
+        </div>
+    </div>
+</div>

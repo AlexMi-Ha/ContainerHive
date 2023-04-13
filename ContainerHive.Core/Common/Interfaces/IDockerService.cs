@@ -12,7 +12,7 @@ namespace ContainerHive.Core.Common.Interfaces {
 
         public Task<IEnumerable<ImageBuild>> GetAllImagesForProjectAsync(string projId);
 
-        public Task<Result<string>> GetContainerLogsAsync(string deploymentId, CancellationToken cancelToken);
+        public Task<Result<string>> GetContainerLogsAsync(string containerId, CancellationToken cancelToken);
         public Task<Result<ImageBuild>> GetImageByIdAsync(string deploymentId);
 
         public Task<bool> PruneProcessesAsync(string projectId, CancellationToken cancelToken);

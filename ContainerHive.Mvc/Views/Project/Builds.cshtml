@@ -1,0 +1,84 @@
+﻿@using ContainerHive.Mvc.Models
+@model BuildsViewModel
+@{
+    ViewData["Title"] = Model.Builds?.FirstOrDefault()?.Deployment?.Project?.Name ?? "" + " - Builds";
+}
+
+
+<div class="head">
+    <h1 class="title gold-highlight">@(Model.Builds?.FirstOrDefault()?.Deployment?.Project?.Name ?? "")</h1>
+    <nav class="project-nav">
+        <div class="nav-back">
+            <a class="nav-link" asp-action="Index" asp-controller="Dashboard">
+                <span class="icon ti ti-arrow-left"></span>&nbsp;Back
+            </a>
+        </div>
+        <a class="nav-link" asp-action="Index" asp-controller="Project" asp-route-id="@ViewData["id"]">Project</a>
+        <a class="nav-link" asp-action="Deployments" asp-controller="Project" asp-route-id="@ViewData["id"]">Deployment Config</a>
+        <a class="nav-link active" asp-action="Builds" asp-controller="Project" asp-route-id="@ViewData["id"]">Builds</a>
+        <div class="nav-spacer">Backaasaaaa</div>
+    </nav>
+</div>
+<div class="content">
+    <div class="content-section" id="builds-list">
+        <h3 class="green-highlight">Builds</h3>
+        <div class="content-section-scroll">
+            @foreach (var builds in Model.Builds) {
+                <partial name="_BuildPanel.cshtml" model="builds" />
+            }
+        </div>
+    </div>
+
+    <div class="content-section" id="container-list">
+        <h3 class="green-highlight">Containers</h3>
+        <div class="content-section-scroll">
+            @foreach (var containers in Model.ContainerList) {
+                <partial name="_ContainerPanel.cshtml" model="containers" />
+            }
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="popup-dialog-logs">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <p class="modal-text"></p>
+    </div>
+</div>
+
+<script defer>
+    const modal = document.getElementById('popup-dialog-logs');
+    const modalCloseBtn = document.getElementsByClassName('close')[0];
+    modalCloseBtn.onclick = closeModal;
+
+    let logsRequest;
+
+    window.onclick = e => {
+        if (e.target == modal) {
+            closeModal();
+        }
+    };
+
+    function closeModal() {
+        logsRequest?.abort();
+        modal.style.display = 'none';
+    }
+
+    function openModal(innerHtml) {
+        setModalHtml(innerHtml);
+        modal.style.display = 'block';
+    }
+
+    function setModalHtml(innerHtml) {
+        document.getElementsByClassName('modal-text')[0].innerHTML = innerHtml;
+    }
+
+    function getLogs(containerId) {
+        openModal(`
+            <div class="loader"></div>
+        `)
+        logsRequest = $.get(`/project/@ViewData["id"]/containers/${containerId}/logs`, e => {
+            setModalHtml(`<p>${e}</p>`);
+        });
+    }
+</script>

@@ -186,18 +186,7 @@ namespace ContainerHive.Core.Services {
                 .ToListAsync();
         }
 
-        public async Task<Result<string>> GetContainerLogsAsync(string deploymentId, CancellationToken cancelToken) {
-
-            var containerResult = await GetAllContainersForDeploymentAsync(deploymentId, cancelToken);
-            if(cancelToken.IsCancellationRequested) {
-                return new OperationCanceledException();
-            }
-            if(containerResult.IsFaulted) {
-                return new Result<string>(containerResult);
-            }
-            if(containerResult.Value?.Count() != 1) {
-                return new RecordNotFoundException($"Could not find Container with DeploymentId {deploymentId}");
-            }
+        public async Task<Result<string>> GetContainerLogsAsync(string containerId, CancellationToken cancelToken) {
 
             StringBuilder logsBuilder = new();
             
@@ -210,7 +199,7 @@ namespace ContainerHive.Core.Services {
 
             var buffer = ArrayPool<byte>.Shared.Rent(81920);
             try {
-                var muxStream = await _dockerClient.Containers.GetContainerLogsAsync(containerResult.Value.First().ID, false, config);
+                var muxStream = await _dockerClient.Containers.GetContainerLogsAsync(containerId, false, config, cancelToken);
                 using (MemoryStream m = new())
                 using (StreamReader reader = new(m)) {
                     while (!cancelToken.IsCancellationRequested) {

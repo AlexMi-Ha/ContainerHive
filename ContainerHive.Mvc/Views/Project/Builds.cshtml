@@ -77,7 +77,7 @@
         openModal(`
             <div class="loader"></div>
         `)
-        logsRequest = $.get(`/project/@ViewData["id"]/containers/${containerId}/logs`, e => {
+        logsRequest = $.get(`/project/@ViewData["id"]/api/containers/${containerId}/logs`, e => {
             setModalHtml(`<p>${e}</p>`);
         });
     }

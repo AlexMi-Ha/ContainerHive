@@ -48,7 +48,7 @@ namespace ContainerHive.Core.Services {
             await _dbContext.SaveChangesAsync(cancelToken);
             if (cancelToken.IsCancellationRequested) return new OperationCanceledException();
             try {
-                using (var tarStream = await CreateTarFileForDockerfileDirectory(Path.Combine(_repoPath, deployment.ProjectId), cancelToken)) {
+                using (var tarStream = await CreateTarFileForDockerfileDirectory(Path.Combine(_repoPath, deployment.ProjectId, deployment.DeploymentRootPath), cancelToken)) {
                     using (var responseStream = await _dockerClient.Images.BuildImageFromDockerfileAsync(tarStream, config, cancelToken))
                     using (var responseReader = new StreamReader(responseStream)) {
                         while(!responseReader.EndOfStream && !cancelToken.IsCancellationRequested) {

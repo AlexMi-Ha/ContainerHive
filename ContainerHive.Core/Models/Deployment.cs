@@ -12,6 +12,9 @@ namespace ContainerHive.Core.Models {
         [MaxLength(512)]
         public string DockerPath { get; set; } = "./Dockerfile";
 
+        [MaxLength(512)]
+        public string DeploymentRootPath { get; set; } = ".";
+
         [Required]
         [Range(0, 65536)]
         public ushort HostPort { get; set; }   
